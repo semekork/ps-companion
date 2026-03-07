@@ -20,10 +20,14 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LinearGradient } from "expo-linear-gradient";
+
 import { PsnAvatar } from "@/components/psn-avatar";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import type { FriendPresence } from "@/types/psn";
 import { useFriends } from "./use-friends";
+
+const PS_DARK = "#00439C";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -246,40 +250,48 @@ export default function FriendsScreen() {
 
   const ListHeader = useMemo(
     () => (
-      <Animated.View
-        entering={FadeIn.duration(300)}
-        style={{ backgroundColor: bg }}
-      >
-        {/* Title row */}
-        <View style={[styles.titleRow, { paddingTop: insets.top + 8 }]}>
-          <Text style={[styles.heading, { color: text }]}>Friends</Text>
-          <View style={styles.titleRight}>
-            {isFetching && !isLoading && (
-              <ActivityIndicator size="small" color={tint} />
-            )}
-            {totalCount > 0 && (
-              <Text style={[styles.countLabel, { color: subtle }]}>
-                {onlineCount} online
-              </Text>
-            )}
+      <Animated.View entering={FadeIn.duration(300)}>
+        <LinearGradient
+          colors={[PS_DARK, "#001A3A", "#000000"]}
+          locations={[0, 0.6, 1]}
+          style={{ paddingBottom: 12 }}
+        >
+          {/* Title row */}
+          <View style={[styles.titleRow, { paddingTop: insets.top + 8 }]}>
+            <Text style={[styles.heading, { color: text }]}>Friends</Text>
+            <View style={styles.titleRight}>
+              {isFetching && !isLoading && (
+                <ActivityIndicator size="small" color={tint} />
+              )}
+              {totalCount > 0 && (
+                <Text style={[styles.countLabel, { color: subtle }]}>
+                  {onlineCount} online
+                </Text>
+              )}
+            </View>
           </View>
-        </View>
 
-        {/* Search */}
-        <View style={[styles.searchBar, { backgroundColor: inputBg }]}>
-          <Text style={[styles.searchIcon, { color: subtle }]}>⌕</Text>
-          <TextInput
-            style={[styles.searchInput, { color: text }]}
-            placeholder="Search friends…"
-            placeholderTextColor={subtle}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            clearButtonMode="while-editing"
-            returnKeyType="search"
-            autoCorrect={false}
-            autoCapitalize="none"
-          />
-        </View>
+          {/* Search */}
+          <View
+            style={[
+              styles.searchBar,
+              { backgroundColor: "rgba(255,255,255,0.1)" },
+            ]}
+          >
+            <Text style={[styles.searchIcon, { color: subtle }]}>⌕</Text>
+            <TextInput
+              style={[styles.searchInput, { color: text }]}
+              placeholder="Search friends…"
+              placeholderTextColor={subtle}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              clearButtonMode="while-editing"
+              returnKeyType="search"
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+          </View>
+        </LinearGradient>
 
         <View style={[styles.divider, { backgroundColor: inputBg }]} />
       </Animated.View>
@@ -324,30 +336,36 @@ export default function FriendsScreen() {
   if (isLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: bg }}>
-        <View style={[styles.titleRow, { paddingTop: insets.top + 8 }]}>
-          <Text style={[styles.heading, { color: text }]}>Friends</Text>
-        </View>
-        <View
-          style={[
-            styles.searchBar,
-            {
-              backgroundColor: inputBg,
-              opacity: 0.5,
-              marginHorizontal: 16,
-              marginBottom: 10,
-            },
-          ]}
+        <LinearGradient
+          colors={[PS_DARK, "#001A3A", "#000000"]}
+          locations={[0, 0.6, 1]}
+          style={{ paddingBottom: 12 }}
         >
-          <Text style={[styles.searchIcon, { color: subtle }]}>⌕</Text>
+          <View style={[styles.titleRow, { paddingTop: insets.top + 8 }]}>
+            <Text style={[styles.heading, { color: text }]}>Friends</Text>
+          </View>
           <View
-            style={{
-              height: 14,
-              flex: 1,
-              backgroundColor: "rgba(255,255,255,0.08)",
-              borderRadius: 6,
-            }}
-          />
-        </View>
+            style={[
+              styles.searchBar,
+              {
+                backgroundColor: "rgba(255,255,255,0.1)",
+                opacity: 0.5,
+                marginHorizontal: 16,
+                marginBottom: 10,
+              },
+            ]}
+          >
+            <Text style={[styles.searchIcon, { color: subtle }]}>⌕</Text>
+            <View
+              style={{
+                height: 14,
+                flex: 1,
+                backgroundColor: "rgba(255,255,255,0.08)",
+                borderRadius: 6,
+              }}
+            />
+          </View>
+        </LinearGradient>
         <View style={[styles.divider, { backgroundColor: inputBg }]} />
         {Array.from({ length: 10 }).map((_, i) => (
           <SkeletonRow key={i} />

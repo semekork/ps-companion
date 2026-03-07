@@ -26,9 +26,13 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LinearGradient } from "expo-linear-gradient";
+
 import { useThemeColor } from "@/hooks/use-theme-color";
 import type { LibraryGame, Platform as PsnPlatform } from "@/types/psn";
 import { type SortOption, useLibrary } from "./use-library";
+
+const PS_DARK = "#00439C";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -371,30 +375,42 @@ function LoadingView({
       contentContainerStyle={{ paddingBottom: bottomInset + 100 }}
       scrollEnabled={false}
     >
-      {/* Mirrors the real title row */}
-      <View style={[styles.titleRow, { paddingTop: topInset + 8 }]}>
-        <Text style={[styles.heading, { color: text }]}>Library</Text>
-      </View>
+      <LinearGradient
+        colors={[PS_DARK, "#001A3A", "#000000"]}
+        locations={[0, 0.6, 1]}
+        style={{ paddingBottom: 12 }}
+      >
+        {/* Mirrors the real title row */}
+        <View style={[styles.titleRow, { paddingTop: topInset + 8 }]}>
+          <Text style={[styles.heading, { color: text }]}>Library</Text>
+        </View>
 
-      {/* Greyed-out search bar placeholder */}
-      <View style={[styles.searchRow]}>
-        <View
-          style={[styles.searchBar, { backgroundColor: inputBg, opacity: 0.5 }]}
-        >
-          <Text style={[styles.searchIcon, { color: subtle }]}>⌕</Text>
+        {/* Greyed-out search bar placeholder */}
+        <View style={[styles.searchRow]}>
           <View
-            style={{
-              height: 14,
-              flex: 1,
-              backgroundColor: "rgba(255,255,255,0.08)",
-              borderRadius: 6,
-            }}
+            style={[
+              styles.searchBar,
+              { backgroundColor: "rgba(255,255,255,0.1)", opacity: 0.5 },
+            ]}
+          >
+            <Text style={[styles.searchIcon, { color: subtle }]}>⌕</Text>
+            <View
+              style={{
+                height: 14,
+                flex: 1,
+                backgroundColor: "rgba(255,255,255,0.08)",
+                borderRadius: 6,
+              }}
+            />
+          </View>
+          <View
+            style={[
+              styles.filterBtn,
+              { backgroundColor: "rgba(255,255,255,0.1)", opacity: 0.5 },
+            ]}
           />
         </View>
-        <View
-          style={[styles.filterBtn, { backgroundColor: inputBg, opacity: 0.5 }]}
-        />
-      </View>
+      </LinearGradient>
 
       <View style={[styles.sectionDivider, { backgroundColor: inputBg }]} />
 
@@ -607,55 +623,68 @@ export default function LibraryScreen() {
 
   const ListHeader = useMemo(
     () => (
-      <Animated.View
-        entering={FadeIn.duration(300)}
-        style={{ backgroundColor: bg }}
-      >
-        {/* Title row — top padding absorbs status-bar safe area */}
-        <View style={[styles.titleRow, { paddingTop: insets.top + 8 }]}>
-          <Text style={[styles.heading, { color: text }]}>Library</Text>
-          <View style={styles.titleRight}>
-            {isFetching && !isLoading && (
-              <ActivityIndicator size="small" color={tint} />
-            )}
-            {totalCount > 0 && (
-              <Text style={[styles.countLabel, { color: subtle }]}>
-                {totalCount} games
-              </Text>
-            )}
+      <Animated.View entering={FadeIn.duration(300)}>
+        <LinearGradient
+          colors={[PS_DARK, "#001A3A", "#000000"]}
+          locations={[0, 0.6, 1]}
+          style={{ paddingBottom: 12 }}
+        >
+          {/* Title row — top padding absorbs status-bar safe area */}
+          <View style={[styles.titleRow, { paddingTop: insets.top + 8 }]}>
+            <Text style={[styles.heading, { color: text }]}>Library</Text>
+            <View style={styles.titleRight}>
+              {isFetching && !isLoading && (
+                <ActivityIndicator size="small" color={tint} />
+              )}
+              {totalCount > 0 && (
+                <Text style={[styles.countLabel, { color: subtle }]}>
+                  {totalCount} games
+                </Text>
+              )}
+            </View>
           </View>
-        </View>
 
-        {/* Search bar + filter button */}
-        <View style={styles.searchRow}>
-          <View style={[styles.searchBar, { backgroundColor: inputBg }]}>
-            <Text style={[styles.searchIcon, { color: subtle }]}>⌕</Text>
-            <TextInput
-              style={[styles.searchInput, { color: text }]}
-              placeholder="Search games…"
-              placeholderTextColor={subtle}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              clearButtonMode="while-editing"
-              returnKeyType="search"
-              autoCorrect={false}
-              autoCapitalize="none"
-            />
+          {/* Search bar + filter button */}
+          <View style={styles.searchRow}>
+            <View
+              style={[
+                styles.searchBar,
+                { backgroundColor: "rgba(255,255,255,0.1)" },
+              ]}
+            >
+              <Text style={[styles.searchIcon, { color: subtle }]}>⌕</Text>
+              <TextInput
+                style={[styles.searchInput, { color: text }]}
+                placeholder="Search games…"
+                placeholderTextColor={subtle}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                clearButtonMode="while-editing"
+                returnKeyType="search"
+                autoCorrect={false}
+                autoCapitalize="none"
+              />
+            </View>
+            <Pressable
+              onPress={openSheet}
+              hitSlop={4}
+              style={({ pressed }) => [
+                styles.filterBtn,
+                {
+                  backgroundColor: "rgba(255,255,255,0.1)",
+                  opacity: pressed ? 0.65 : 1,
+                },
+              ]}
+            >
+              <FilterIcon
+                color={hasActiveFilters ? tint : "rgba(255,255,255,0.6)"}
+              />
+              {hasActiveFilters && (
+                <View style={[styles.filterBadge, { backgroundColor: tint }]} />
+              )}
+            </Pressable>
           </View>
-          <Pressable
-            onPress={openSheet}
-            hitSlop={4}
-            style={({ pressed }) => [
-              styles.filterBtn,
-              { backgroundColor: inputBg, opacity: pressed ? 0.65 : 1 },
-            ]}
-          >
-            <FilterIcon color={hasActiveFilters ? tint : subtle} />
-            {hasActiveFilters && (
-              <View style={[styles.filterBadge, { backgroundColor: tint }]} />
-            )}
-          </Pressable>
-        </View>
+        </LinearGradient>
 
         {/* Divider */}
         <View style={[styles.sectionDivider, { backgroundColor: inputBg }]} />
