@@ -17,7 +17,7 @@ A React Native / Expo app that brings your PlayStation Network profile, trophy c
   <tr>
     <td align="center"><img src="ss/IMG_0299.PNG" width="200"/><br/><sub>Trophy Tracker</sub></td>
     <td align="center"><img src="ss/IMG_0300.PNG" width="200"/><br/><sub>Friends</sub></td>
-    <td align="center"><img src="ss/IMG_0301.PNG" width="200"/><br/><sub>Game Detail</sub></td>
+    <td align="center"><img src="ss/IMG_0301.PNG" width="200"/><br/><sub>News</sub></td>
   </tr>
 </table>
 
