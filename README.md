@@ -1,50 +1,172 @@
-# Welcome to your Expo app 👋
+# PlayStation Companion
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A React Native / Expo app that brings your PlayStation Network profile, trophy collection, library, and friends list to your phone — built entirely by vibing with AI.
 
-## Get started
+> **Status:** Early access / open source. Expect rough edges.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## Features
 
-2. Start the app
+- **Dashboard** — Hero game card, continue playing shelf, friends strip, and latest PS news
+- **Library** — Full trophy-title library with search, sort (recent / A–Z / progress), and platform filter
+- **Trophy Tracker** — Per-game trophy breakdown with sort and filter sheet
+- **Friends** — Online status, currently playing title, and last-seen time
+- **Profile** — Trophy level, tier progress, and earned trophy counts
+- **PS News** — Latest PlayStation blog headlines
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## Getting Started
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Prerequisites
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- Node 18+
+- Expo Go on your device **or** an iOS simulator / Android emulator
+- A PlayStation Network account and your **NPSSO token**
 
-## Get a fresh project
+> To get your NPSSO token: log into [PlayStation.com](https://www.playstation.com) in a browser, then visit `https://ca.account.sony.com/api/v1/ssocookie`. Copy the `npsso` value.
 
-When you're ready, run:
+### Install & run
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Scan the QR code with Expo Go, or press `i` / `a` to open in a simulator.
 
-## Learn more
+---
 
-To learn more about developing your project with Expo, look at the following resources:
+## Contributing
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Contributions are welcome — and the process is deliberately low-friction.
 
-## Join the community
+### The vibe
 
-Join our community of developers creating universal apps.
+This project is **100% vibe coded**. That means:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- Open your AI assistant of choice (GitHub Copilot, Cursor, Claude, ChatGPT — whatever you vibe with)
+- Describe what you want to build or fix in plain English
+- Let it generate the code
+- Test it, tweak it, ship it
+
+There are no strict style rules, no mandatory PR templates, no design committee. If it works and it looks good, it's welcome.
+
+### How to contribute
+
+1. Fork the repo and create a branch (`git checkout -b feat/my-cool-thing`)
+2. Make your changes — vibe away
+3. Make sure the app runs without errors (`npx expo start`)
+4. Open a pull request with a short description of what you changed and why
+
+### Guidelines (loose)
+
+- Keep the dark PlayStation aesthetic — navy, deep blue, dark backgrounds
+- Prefer `StyleSheet` over NativeWind for complex components
+- New screens go in `app/`, reusable UI in `components/`, data hooks in `features/<name>/`
+- Don't break the existing auth or navigation flow
+
+---
+
+## Feature Requests
+
+Got an idea? [Open an issue](../../issues/new) with the label `feature request`.
+
+Good candidates:
+
+- New dashboard widgets (trophy milestones, comparison with friends, etc.)
+- Trophy rarity display per game
+- Push notifications for friends coming online
+- PS Store wishlist / price tracking
+- Widget / home screen support
+
+Not in scope (PSN API limitation):
+
+- Real-time game installs / download queue — Sony doesn't expose this via any public API
+
+---
+
+## Architecture
+
+> Full details in [ARCHITECTURE.md](ARCHITECTURE.md).
+
+### Folder structure
+
+```
+app/                  Expo Router screens (thin route shells only)
+  (tabs)/             Five-tab bottom navigator
+  game/[titleId].tsx  Game detail route
+  friend/[accountId]  Friend profile route
+  welcome.tsx         Unauthenticated landing screen
+  auth.tsx            NPSSO sign-in screen
+
+features/             All domain logic, co-located by feature
+  dashboard/
+  library/
+  trophies/
+  friends/
+  news/
+  game-detail/
+
+services/             Pure async functions — no React, fully testable
+  psn-auth.ts
+  psn-games.ts
+  psn-trophies.ts
+  psn-friends.ts
+
+context/              Lean React contexts (auth state + user profile)
+  auth-context.tsx
+  user-context.tsx
+
+components/           Shared, feature-agnostic UI primitives
+types/psn.ts          Shared TypeScript types for all PSN data shapes
+```
+
+### State model
+
+| Concern | Tool |
+|---|---|
+| Auth tokens | `expo-secure-store` (Keychain / Keystore) |
+| User profile in-session | React Context (`UserContext`) |
+| All PSN/API data | TanStack Query v5 — caching, background refetch, stale-while-revalidate |
+| Offline cache | `AsyncStoragePersister` — last-fetched data survives restarts |
+
+### Data flow (example — Library tab)
+
+```
+app/(tabs)/library.tsx
+  └─ LibraryScreen
+       └─ useLibrary()  →  TanStack Query  →  services/psn-games.ts  →  psn-api  →  PSN
+                        ←  AsyncStorage cache shown immediately (stale)
+                        ←  fresh response replaces cache in background
+```
+
+### Auth flow
+
+```
+Cold start → read expo-secure-store
+  token valid          → (tabs)
+  token expired        → silent refresh → (tabs)
+  no token / expired   → /welcome → /auth → paste NPSSO → (tabs)
+```
+
+---
+
+
+
+| Layer | Library |
+|---|---|
+| Framework | Expo SDK 54 + Expo Router v6 |
+| Language | TypeScript |
+| Data fetching | TanStack Query v5 |
+| PSN data | psn-api |
+| Animations | Reanimated 3 |
+| Gradients | expo-linear-gradient |
+| Images | expo-image |
+
+---
+
+## License
+
+MIT — do whatever you want with it.
