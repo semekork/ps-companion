@@ -6,6 +6,23 @@ A React Native / Expo app that brings your PlayStation Network profile, trophy c
 
 ---
 
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="ss/IMG_0292.PNG" width="200"/><br/><sub>Welcome</sub></td>
+    <td align="center"><img src="ss/IMG_0297.PNG" width="200"/><br/><sub>Dashboard</sub></td>
+    <td align="center"><img src="ss/IMG_0298.PNG" width="200"/><br/><sub>Library</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="ss/IMG_0299.PNG" width="200"/><br/><sub>Trophy Tracker</sub></td>
+    <td align="center"><img src="ss/IMG_0300.PNG" width="200"/><br/><sub>Friends</sub></td>
+    <td align="center"><img src="ss/IMG_0301.PNG" width="200"/><br/><sub>Game Detail</sub></td>
+  </tr>
+</table>
+
+---
+
 ## Features
 
 - **Dashboard** — Hero game card, continue playing shelf, friends strip, and latest PS news
