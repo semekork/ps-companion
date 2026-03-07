@@ -2,7 +2,7 @@ import { exchangeRefreshTokenForAuthTokens } from "psn-api";
 
 import type { AuthTokens } from "@/types/psn";
 
-// ─── PSN OAuth constants (from psn-api source), these are already publick so pushing is not an issue. Don't come and disturb me that this was pushed because of vibe coding. ───────────────────────────────
+// ─── PSN OAuth constants (from psn-api source), these are already public so pushing it is not an issue. Don't come and disturb me with "this was pushed because of vibe coding". ───────────────────────────────
 
 const AUTH_BASE_URL = "https://ca.account.sony.com/api/authz/v3/oauth";
 const REDIRECT_URI = "com.scee.psxandroid.scecompcall://redirect";
