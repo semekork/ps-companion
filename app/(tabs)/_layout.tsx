@@ -1,33 +1,67 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs } from "expo-router";
+import React from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AnimatedTabBar } from "@/components/animated-tab-bar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
+      tabBar={(props) => <AnimatedTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+      }}
+      sceneContainerStyle={{
+        // Leave room for the floating bar (height ~68) + its bottom margin + safe area
+        paddingBottom: insets.bottom + 88,
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: "Home",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={26} name="house.fill" color={color} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="library"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: "Library",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={26} name="gamecontroller.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="trophies"
+        options={{
+          title: "Trophies",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={26} name="trophy.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="friends"
+        options={{
+          title: "Friends",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={26} name="person.2.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="news"
+        options={{
+          title: "News",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={26} name="newspaper.fill" color={color} />
+          ),
         }}
       />
     </Tabs>
