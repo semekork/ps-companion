@@ -3,7 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Sharing from "expo-sharing";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { FlatList, Pressable, Share, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 import Animated, {
   FadeInDown,
@@ -16,6 +16,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import type { GameTrophy } from "@/types/psn";
 import { useGameDetail } from "./use-game-detail";
@@ -600,7 +601,7 @@ export default function GameDetailScreen() {
         style={[
           styles.fab,
           fabStyle,
-          { bottom: insets.bottom + 90, backgroundColor: PS_BLUE },
+          { bottom: insets.bottom + 16, backgroundColor: PS_BLUE },
         ]}
       >
         <Pressable
@@ -612,9 +613,9 @@ export default function GameDetailScreen() {
           style={styles.fabInner}
         >
           {sharing ? (
-            <Text style={styles.fabIcon}>⋯</Text>
+            <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.fabIcon}>⬆</Text>
+            <IconSymbol name="square.and.arrow.up" size={22} color="#fff" />
           )}
         </Pressable>
       </Animated.View>
@@ -801,7 +802,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  fabIcon: { color: "#fff", fontSize: 20, lineHeight: 24 },
   // Off-screen share card container
   offscreen: { position: "absolute", left: -9999, top: 0 },
 });

@@ -39,6 +39,7 @@ const MAPPING = {
   globe: "language",
   "arrow.clockwise": "refresh",
   "exclamationmark.triangle.fill": "warning",
+  "square.and.arrow.up": "share",
 } as IconMapping;
 
 /**
