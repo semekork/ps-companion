@@ -10,7 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.ps-app"
+      "bundleIdentifier": "com.anonymous.ps-app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.mitech.pscompanion",
