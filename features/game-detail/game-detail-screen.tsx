@@ -1,10 +1,17 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import * as Sharing from "expo-sharing";
 import { useRouter } from "expo-router";
+import * as Sharing from "expo-sharing";
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, Share, StyleSheet, Text, View } from "react-native";
-import { captureRef } from "react-native-view-shot";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Animated, {
   FadeInDown,
   useAnimatedStyle,
@@ -15,6 +22,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { captureRef } from "react-native-view-shot";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useThemeColor } from "@/hooks/use-theme-color";
@@ -225,92 +233,199 @@ const ShareCard = React.forwardRef<
     total: number;
     earnedCounts: Record<string, number>;
   }
->(({ name, imageUrl, platform, progress, earnedTotal, total, earnedCounts }, ref) => {
-  return (
-    <View
-      ref={ref}
-      style={shareCardStyles.card}
-      collapsable={false}
-    >
-      {/* Background cover */}
-      {imageUrl ? (
-        <Image
-          source={{ uri: imageUrl }}
-          style={StyleSheet.absoluteFill}
-          contentFit="cover"
-        />
-      ) : (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: "#0a0a1a" }]} />
-      )}
+>(
+  (
+    { name, imageUrl, platform, progress, earnedTotal, total, earnedCounts },
+    ref,
+  ) => {
+    return (
+      <View ref={ref} style={shareCardStyles.card} collapsable={false}>
+        {/* Background cover */}
+        {imageUrl ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+          />
+        ) : (
+          <View
+            style={[StyleSheet.absoluteFill, { backgroundColor: "#0a0a1a" }]}
+          />
+        )}
 
-      {/* Dark gradient overlay */}
-      <LinearGradient
-        colors={["rgba(0,0,0,0.15)", "rgba(0,0,0,0.88)"]}
-        locations={[0, 1]}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* PS branding top-left */}
-      <View style={shareCardStyles.brand}>
+        {/* Dark gradient overlay */}
         <LinearGradient
-          colors={[PS_BLUE, PS_DARK]}
-          style={shareCardStyles.brandBox}
-        >
-          <Text style={shareCardStyles.brandText}>PS</Text>
-        </LinearGradient>
-        <Text style={shareCardStyles.brandLabel}>Companion</Text>
-      </View>
+          colors={["rgba(0,0,0,0.15)", "rgba(0,0,0,0.88)"]}
+          locations={[0, 1]}
+          style={StyleSheet.absoluteFill}
+        />
 
-      {/* Bottom content */}
-      <View style={shareCardStyles.bottom}>
-        <Text style={shareCardStyles.gameName} numberOfLines={2}>{name}</Text>
-        <Text style={shareCardStyles.platform}>{platform}</Text>
-
-        {/* Progress bar */}
-        <View style={shareCardStyles.progressRow}>
-          <View style={shareCardStyles.progressTrack}>
-            <View style={[shareCardStyles.progressFill, { width: `${progress}%` }]} />
-          </View>
-          <Text style={shareCardStyles.progressLabel}>{progress}%</Text>
+        {/* PS branding top-left */}
+        <View style={shareCardStyles.brand}>
+          <LinearGradient
+            colors={[PS_BLUE, PS_DARK]}
+            style={shareCardStyles.brandBox}
+          >
+            <Text style={shareCardStyles.brandText}>PS</Text>
+          </LinearGradient>
+          <Text style={shareCardStyles.brandLabel}>Companion</Text>
         </View>
 
-        {/* Trophy counts */}
-        <View style={shareCardStyles.trophyRow}>
-          {(["platinum", "gold", "silver", "bronze"] as const).map((g) => (
-            <View key={g} style={shareCardStyles.trophyPill}>
-              <View style={[shareCardStyles.trophyDot, { backgroundColor: TROPHY_COLORS[g] }]} />
-              <Text style={shareCardStyles.trophyCount}>{earnedCounts[g] ?? 0}</Text>
-              <Text style={[shareCardStyles.trophyGrade, { color: TROPHY_COLORS[g] }]}>
-                {g.slice(0, 3).toUpperCase()}
+        {/* Bottom content */}
+        <View style={shareCardStyles.bottom}>
+          <Text style={shareCardStyles.gameName} numberOfLines={2}>
+            {name}
+          </Text>
+          <Text style={shareCardStyles.platform}>{platform}</Text>
+
+          {/* Progress bar */}
+          <View style={shareCardStyles.progressRow}>
+            <View style={shareCardStyles.progressTrack}>
+              <View
+                style={[
+                  shareCardStyles.progressFill,
+                  { width: `${progress}%` },
+                ]}
+              />
+            </View>
+            <Text style={shareCardStyles.progressLabel}>{progress}%</Text>
+          </View>
+
+          {/* Tagline */}
+          <Text style={shareCardStyles.tagline}>Tracked with PS Companion</Text>
+
+          {/* Trophy counts */}
+          <View style={shareCardStyles.trophyRow}>
+            {(["platinum", "gold", "silver", "bronze"] as const).map((g) => (
+              <View key={g} style={shareCardStyles.trophyPill}>
+                <View
+                  style={[
+                    shareCardStyles.trophyDot,
+                    { backgroundColor: TROPHY_COLORS[g] },
+                  ]}
+                />
+                <Text style={shareCardStyles.trophyCount}>
+                  {earnedCounts[g] ?? 0}
+                </Text>
+                <Text
+                  style={[
+                    shareCardStyles.trophyGrade,
+                    { color: TROPHY_COLORS[g] },
+                  ]}
+                >
+                  {g.slice(0, 3).toUpperCase()}
+                </Text>
+              </View>
+            ))}
+            <View style={[shareCardStyles.trophyPill, { marginLeft: 8 }]}>
+              <Text style={shareCardStyles.trophyTotal}>
+                {earnedTotal}
+                <Text style={{ opacity: 0.5 }}>/{total}</Text>
               </Text>
             </View>
-          ))}
-          <View style={[shareCardStyles.trophyPill, { marginLeft: 8 }]}>
-            <Text style={shareCardStyles.trophyTotal}>{earnedTotal}<Text style={{ opacity: 0.5 }}>/{total}</Text></Text>
           </View>
         </View>
       </View>
-    </View>
-  );
-});
+    );
+  },
+);
 
 ShareCard.displayName = "ShareCard";
 
 const shareCardStyles = StyleSheet.create({
-  card: { width: 375, height: 220, borderRadius: 16, overflow: "hidden", backgroundColor: "#0a0a1a" },
-  brand: { position: "absolute", top: 16, left: 16, flexDirection: "row", alignItems: "center", gap: 7 },
-  brandBox: { width: 28, height: 28, borderRadius: 7, alignItems: "center", justifyContent: "center" },
+  card: {
+    width: 375,
+    height: 300,
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "#0a0a1a",
+  },
+  brand: {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  brandBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   brandText: { color: "#fff", fontWeight: "900", fontSize: 11 },
-  brandLabel: { color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "600" },
-  bottom: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 16, gap: 6 },
-  gameName: { color: "#fff", fontSize: 18, fontWeight: "800", letterSpacing: -0.3, lineHeight: 22 },
-  platform: { color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
-  progressRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
-  progressTrack: { flex: 1, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.15)", overflow: "hidden" },
+  brandLabel: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  bottom: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    gap: 6,
+  },
+  gameName: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+    lineHeight: 22,
+  },
+  tagline: {
+    color: "rgba(255,255,255,0.45)",
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
+  platform: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  progressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 2,
+  },
+  progressTrack: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    overflow: "hidden",
+  },
   progressFill: { height: "100%", borderRadius: 2, backgroundColor: PS_BLUE },
-  progressLabel: { color: "rgba(255,255,255,0.6)", fontSize: 11, fontWeight: "600", width: 30, textAlign: "right" },
-  trophyRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
-  trophyPill: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 },
+  progressLabel: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 11,
+    fontWeight: "600",
+    width: 30,
+    textAlign: "right",
+  },
+  trophyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 2,
+  },
+  trophyPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
   trophyDot: { width: 7, height: 7, borderRadius: 3.5 },
   trophyCount: { color: "#fff", fontSize: 12, fontWeight: "700" },
   trophyGrade: { fontSize: 10, fontWeight: "600" },
@@ -457,7 +572,9 @@ export default function GameDetailScreen() {
   const shareCardRef = useRef<View>(null);
   const [sharing, setSharing] = useState(false);
   const fabScale = useSharedValue(1);
-  const fabStyle = useAnimatedStyle(() => ({ transform: [{ scale: fabScale.value }] }));
+  const fabStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: fabScale.value }],
+  }));
 
   const {
     trophies,
@@ -482,7 +599,10 @@ export default function GameDetailScreen() {
       });
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
-        await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: "Share your trophies" });
+        await Sharing.shareAsync(uri, {
+          mimeType: "image/png",
+          dialogTitle: "Share your trophies",
+        });
       } else {
         await Share.share({
           message: `I earned ${earnedTotal}/${total} trophies in ${meta.name} (${meta.progress}%) on PlayStation! 🏆`,
@@ -559,37 +679,37 @@ export default function GameDetailScreen() {
       <FlatList<GameTrophy>
         style={{ backgroundColor: bg }}
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
-      data={trophies}
-      keyExtractor={(t) => String(t.trophyId)}
-      renderItem={renderTrophy}
-      ListHeaderComponent={ListHeader}
-      ListEmptyComponent={
-        isLoading ? (
-          <>
-            {Array.from({ length: 12 }).map((_, i) => (
-              <SkeletonTrophyRow key={i} />
-            ))}
-          </>
-        ) : isError ? (
-          <View style={styles.centered}>
-            <Text style={[styles.errorText, { color: text }]}>
-              Failed to load trophies.
-            </Text>
-            <Pressable
-              onPress={() => refetch()}
-              style={[styles.retryBtn, { borderColor: tint }]}
-            >
-              <Text style={[styles.retryText, { color: tint }]}>Retry</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.centered}>
-            <Text style={[styles.emptyText, { color: subtle }]}>
-              No trophies found.
-            </Text>
-          </View>
-        )
-      }
+        data={trophies}
+        keyExtractor={(t) => String(t.trophyId)}
+        renderItem={renderTrophy}
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={
+          isLoading ? (
+            <>
+              {Array.from({ length: 12 }).map((_, i) => (
+                <SkeletonTrophyRow key={i} />
+              ))}
+            </>
+          ) : isError ? (
+            <View style={styles.centered}>
+              <Text style={[styles.errorText, { color: text }]}>
+                Failed to load trophies.
+              </Text>
+              <Pressable
+                onPress={() => refetch()}
+                style={[styles.retryBtn, { borderColor: tint }]}
+              >
+                <Text style={[styles.retryText, { color: tint }]}>Retry</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.centered}>
+              <Text style={[styles.emptyText, { color: subtle }]}>
+                No trophies found.
+              </Text>
+            </View>
+          )
+        }
         initialNumToRender={15}
         maxToRenderPerBatch={20}
         refreshing={false}
@@ -606,8 +726,12 @@ export default function GameDetailScreen() {
       >
         <Pressable
           onPress={handleShare}
-          onPressIn={() => { fabScale.value = withSpring(0.88, { damping: 12, stiffness: 220 }); }}
-          onPressOut={() => { fabScale.value = withSpring(1, { damping: 10, stiffness: 180 }); }}
+          onPressIn={() => {
+            fabScale.value = withSpring(0.88, { damping: 12, stiffness: 220 });
+          }}
+          onPressOut={() => {
+            fabScale.value = withSpring(1, { damping: 10, stiffness: 180 });
+          }}
           disabled={sharing}
           hitSlop={8}
           style={styles.fabInner}
