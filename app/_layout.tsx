@@ -8,9 +8,17 @@ import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { Redirect, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
+import { StyleSheet } from "react-native";
 import "react-native-reanimated";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import "../global.css";
 
+import { PsSplash } from "@/components/ps-splash";
 import { AuthProvider, useAuth } from "@/context/auth-context";
 import { UserProvider } from "@/context/user-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -68,9 +76,17 @@ export default function RootLayout() {
 function RootNavigator() {
   const colorScheme = useColorScheme();
   const { isAuthenticated, isLoading } = useAuth();
+  const splashOpacity = useSharedValue(1);
 
-  // Still restoring tokens from secure store — render nothing yet
-  if (isLoading) return null;
+  useEffect(() => {
+    if (!isLoading) {
+      splashOpacity.value = withTiming(0, { duration: 500 });
+    }
+  }, [isLoading]);
+
+  const splashStyle = useAnimatedStyle(() => ({
+    opacity: splashOpacity.value,
+  }));
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -107,7 +123,15 @@ function RootNavigator() {
       </Stack>
 
       {/* Redirect based on auth state */}
-      {!isAuthenticated && <Redirect href="/welcome" />}
+      {!isLoading && !isAuthenticated && <Redirect href="/welcome" />}
+
+      {/* Splash overlay — fades out once auth resolves */}
+      <Animated.View
+        style={[StyleSheet.absoluteFill, splashStyle]}
+        pointerEvents="none"
+      >
+        <PsSplash />
+      </Animated.View>
 
       <StatusBar style="auto" />
     </ThemeProvider>

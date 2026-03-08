@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Install share packages",
+			"type": "shell",
+			"command": "npx expo install react-native-view-shot expo-sharing expo-file-system"
+		},
+		{
+			"label": "Commit share feature",
+			"type": "shell",
+			"command": "cd /Users/sirmike/Documents/ps-app && git add features/game-detail/game-detail-screen.tsx package.json package-lock.json && git commit -m \"feat(game-detail): add trophy share card — image capture + native share sheet with text fallback\" && git push"
+		}
+	]
+}

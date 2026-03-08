@@ -6,7 +6,6 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Platform,
   Pressable,
   Share,
   StyleSheet,
@@ -337,7 +336,6 @@ const shareCardStyles = StyleSheet.create({
   card: {
     width: 375,
     height: 300,
-    borderRadius: 16,
     overflow: "hidden",
     backgroundColor: "#0a0a1a",
   },
@@ -599,20 +597,14 @@ export default function GameDetailScreen() {
         quality: 1,
         result: "tmpfile",
       });
-      if (Platform.OS === "ios") {
-        // On iOS, passing both url (image) and message (text) populates the
-        // pre-fill text field AND attaches the image in the native share sheet.
-        await Share.share({ message, url: uri });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, {
+          mimeType: "image/png",
+          dialogTitle: "Share your trophies",
+        });
       } else {
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          await Sharing.shareAsync(uri, {
-            mimeType: "image/png",
-            dialogTitle: "Share your trophies",
-          });
-        } else {
-          await Share.share({ message });
-        }
+        await Share.share({ message });
       }
     } catch {
       await Share.share({ message }).catch(() => {});
