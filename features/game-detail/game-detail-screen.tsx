@@ -1,14 +1,17 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Sharing from "expo-sharing";
 import { useRouter } from "expo-router";
-import React, { useCallback, useMemo } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { FlatList, Pressable, Share, StyleSheet, Text, View } from "react-native";
+import { captureRef } from "react-native-view-shot";
 import Animated, {
   FadeInDown,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withSequence,
+  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -204,6 +207,116 @@ function TrophyRow({
 }
 
 // ---------------------------------------------------------------------------
+// Share card (rendered off-screen, captured as PNG)
+// ---------------------------------------------------------------------------
+
+const PS_BLUE = "#0070D1";
+const PS_DARK = "#00439C";
+
+const ShareCard = React.forwardRef<
+  View,
+  {
+    name: string;
+    imageUrl: string;
+    platform: string;
+    progress: number;
+    earnedTotal: number;
+    total: number;
+    earnedCounts: Record<string, number>;
+  }
+>(({ name, imageUrl, platform, progress, earnedTotal, total, earnedCounts }, ref) => {
+  return (
+    <View
+      ref={ref}
+      style={shareCardStyles.card}
+      collapsable={false}
+    >
+      {/* Background cover */}
+      {imageUrl ? (
+        <Image
+          source={{ uri: imageUrl }}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+        />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: "#0a0a1a" }]} />
+      )}
+
+      {/* Dark gradient overlay */}
+      <LinearGradient
+        colors={["rgba(0,0,0,0.15)", "rgba(0,0,0,0.88)"]}
+        locations={[0, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* PS branding top-left */}
+      <View style={shareCardStyles.brand}>
+        <LinearGradient
+          colors={[PS_BLUE, PS_DARK]}
+          style={shareCardStyles.brandBox}
+        >
+          <Text style={shareCardStyles.brandText}>PS</Text>
+        </LinearGradient>
+        <Text style={shareCardStyles.brandLabel}>Companion</Text>
+      </View>
+
+      {/* Bottom content */}
+      <View style={shareCardStyles.bottom}>
+        <Text style={shareCardStyles.gameName} numberOfLines={2}>{name}</Text>
+        <Text style={shareCardStyles.platform}>{platform}</Text>
+
+        {/* Progress bar */}
+        <View style={shareCardStyles.progressRow}>
+          <View style={shareCardStyles.progressTrack}>
+            <View style={[shareCardStyles.progressFill, { width: `${progress}%` }]} />
+          </View>
+          <Text style={shareCardStyles.progressLabel}>{progress}%</Text>
+        </View>
+
+        {/* Trophy counts */}
+        <View style={shareCardStyles.trophyRow}>
+          {(["platinum", "gold", "silver", "bronze"] as const).map((g) => (
+            <View key={g} style={shareCardStyles.trophyPill}>
+              <View style={[shareCardStyles.trophyDot, { backgroundColor: TROPHY_COLORS[g] }]} />
+              <Text style={shareCardStyles.trophyCount}>{earnedCounts[g] ?? 0}</Text>
+              <Text style={[shareCardStyles.trophyGrade, { color: TROPHY_COLORS[g] }]}>
+                {g.slice(0, 3).toUpperCase()}
+              </Text>
+            </View>
+          ))}
+          <View style={[shareCardStyles.trophyPill, { marginLeft: 8 }]}>
+            <Text style={shareCardStyles.trophyTotal}>{earnedTotal}<Text style={{ opacity: 0.5 }}>/{total}</Text></Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+});
+
+ShareCard.displayName = "ShareCard";
+
+const shareCardStyles = StyleSheet.create({
+  card: { width: 375, height: 220, borderRadius: 16, overflow: "hidden", backgroundColor: "#0a0a1a" },
+  brand: { position: "absolute", top: 16, left: 16, flexDirection: "row", alignItems: "center", gap: 7 },
+  brandBox: { width: 28, height: 28, borderRadius: 7, alignItems: "center", justifyContent: "center" },
+  brandText: { color: "#fff", fontWeight: "900", fontSize: 11 },
+  brandLabel: { color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "600" },
+  bottom: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 16, gap: 6 },
+  gameName: { color: "#fff", fontSize: 18, fontWeight: "800", letterSpacing: -0.3, lineHeight: 22 },
+  platform: { color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
+  progressRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
+  progressTrack: { flex: 1, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.15)", overflow: "hidden" },
+  progressFill: { height: "100%", borderRadius: 2, backgroundColor: PS_BLUE },
+  progressLabel: { color: "rgba(255,255,255,0.6)", fontSize: 11, fontWeight: "600", width: 30, textAlign: "right" },
+  trophyRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
+  trophyPill: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 },
+  trophyDot: { width: 7, height: 7, borderRadius: 3.5 },
+  trophyCount: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  trophyGrade: { fontSize: 10, fontWeight: "600" },
+  trophyTotal: { color: "#fff", fontSize: 12, fontWeight: "700" },
+});
+
+// ---------------------------------------------------------------------------
 // Hero strip
 // ---------------------------------------------------------------------------
 
@@ -340,6 +453,11 @@ export default function GameDetailScreen() {
     "icon",
   ) as string;
 
+  const shareCardRef = useRef<View>(null);
+  const [sharing, setSharing] = useState(false);
+  const fabScale = useSharedValue(1);
+  const fabStyle = useAnimatedStyle(() => ({ transform: [{ scale: fabScale.value }] }));
+
   const {
     trophies,
     meta,
@@ -351,6 +469,33 @@ export default function GameDetailScreen() {
     earnedTotal,
     total,
   } = useGameDetail();
+
+  const handleShare = useCallback(async () => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      const uri = await captureRef(shareCardRef, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: "Share your trophies" });
+      } else {
+        await Share.share({
+          message: `I earned ${earnedTotal}/${total} trophies in ${meta.name} (${meta.progress}%) on PlayStation! 🏆`,
+        });
+      }
+    } catch {
+      // User cancelled or capture failed — fall back to text share
+      await Share.share({
+        message: `I earned ${earnedTotal}/${total} trophies in ${meta.name} (${meta.progress}%) on PlayStation! 🏆`,
+      }).catch(() => {});
+    } finally {
+      setSharing(false);
+    }
+  }, [sharing, earnedTotal, total, meta.name, meta.progress]);
 
   const renderTrophy = useCallback(
     ({ item }: { item: GameTrophy }) => (
@@ -395,9 +540,24 @@ export default function GameDetailScreen() {
   );
 
   return (
-    <FlatList<GameTrophy>
-      style={{ backgroundColor: bg }}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+    <View style={{ flex: 1, backgroundColor: bg }}>
+      {/* Off-screen share card — rendered but invisible, captured by view-shot */}
+      <View style={styles.offscreen} pointerEvents="none">
+        <ShareCard
+          ref={shareCardRef}
+          name={meta.name}
+          imageUrl={meta.imageUrl}
+          platform={meta.platform}
+          progress={meta.progress}
+          earnedTotal={earnedTotal}
+          total={total}
+          earnedCounts={earnedCounts}
+        />
+      </View>
+
+      <FlatList<GameTrophy>
+        style={{ backgroundColor: bg }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
       data={trophies}
       keyExtractor={(t) => String(t.trophyId)}
       renderItem={renderTrophy}
@@ -429,11 +589,36 @@ export default function GameDetailScreen() {
           </View>
         )
       }
-      initialNumToRender={15}
-      maxToRenderPerBatch={20}
-      refreshing={false}
-      onRefresh={refetch}
-    />
+        initialNumToRender={15}
+        maxToRenderPerBatch={20}
+        refreshing={false}
+        onRefresh={refetch}
+      />
+
+      {/* FAB — share button */}
+      <Animated.View
+        style={[
+          styles.fab,
+          fabStyle,
+          { bottom: insets.bottom + 90, backgroundColor: PS_BLUE },
+        ]}
+      >
+        <Pressable
+          onPress={handleShare}
+          onPressIn={() => { fabScale.value = withSpring(0.88, { damping: 12, stiffness: 220 }); }}
+          onPressOut={() => { fabScale.value = withSpring(1, { damping: 10, stiffness: 180 }); }}
+          disabled={sharing}
+          hitSlop={8}
+          style={styles.fabInner}
+        >
+          {sharing ? (
+            <Text style={styles.fabIcon}>⋯</Text>
+          ) : (
+            <Text style={styles.fabIcon}>⬆</Text>
+          )}
+        </Pressable>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -596,4 +781,27 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   retryText: { fontSize: 15, fontWeight: "600" },
+  // Share FAB
+  fab: {
+    position: "absolute",
+    right: 20,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  fabInner: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fabIcon: { color: "#fff", fontSize: 20, lineHeight: 24 },
+  // Off-screen share card container
+  offscreen: { position: "absolute", left: -9999, top: 0 },
 });
