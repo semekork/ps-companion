@@ -1,5 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
+import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 
 import {
@@ -28,6 +29,7 @@ const PSN_LOGIN_URL = "https://www.playstation.com";
 
 export default function AuthScreen() {
   const { signIn, isLoading, error } = useAuth();
+  const router = useRouter();
   const [npsso, setNpsso] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isWebAuthing, setIsWebAuthing] = useState(false);
@@ -54,7 +56,8 @@ export default function AuthScreen() {
       const code = await webAuthRef.current!.authenticate(token);
       // Step 2: exchange code for access + refresh tokens via context.
       await signIn(code);
-      // Navigation happens reactively in _layout.tsx when isAuthenticated flips
+      // Navigate to the dashboard now that auth state is set.
+      router.replace("/(tabs)");
     } catch (err) {
       setValidationError(
         err instanceof Error ? err.message : "Authentication failed.",
