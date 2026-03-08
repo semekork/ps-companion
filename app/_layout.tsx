@@ -3,9 +3,8 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { QueryClient } from "@tanstack/react-query";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { PersistQueryClientProvider, Persister } from "@tanstack/react-query-persist-client";
 import { Redirect, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -38,25 +37,23 @@ const queryClient = new QueryClient({
   },
 });
 
-// In-memory storage — avoids native AsyncStorage module issues with Expo Go.
-// Keeps the cache alive for the session; data refetches on a fresh app launch.
+// In-memory persister — no native module required.
+// Cache lives for the session; data refetches on a fresh app launch.
 const _cache = new Map<string, string>();
-const memoryStorage = {
-  getItem: (key: string) => Promise.resolve(_cache.get(key) ?? null),
-  setItem: (key: string, value: string) => {
-    _cache.set(key, value);
-    return Promise.resolve();
+const CACHE_KEY = "PS_APP_QUERY_CACHE";
+
+const persister: Persister = {
+  persistClient: async (client) => {
+    _cache.set(CACHE_KEY, JSON.stringify(client));
   },
-  removeItem: (key: string) => {
-    _cache.delete(key);
-    return Promise.resolve();
+  restoreClient: async () => {
+    const data = _cache.get(CACHE_KEY);
+    return data ? JSON.parse(data) : undefined;
+  },
+  removeClient: async () => {
+    _cache.delete(CACHE_KEY);
   },
 };
-
-const persister = createAsyncStoragePersister({
-  storage: memoryStorage,
-  key: "PS_APP_QUERY_CACHE",
-});
 
 export default function RootLayout() {
   return (
