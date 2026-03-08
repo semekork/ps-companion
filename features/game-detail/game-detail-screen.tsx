@@ -6,6 +6,7 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   Pressable,
   Share,
   StyleSheet,
@@ -591,28 +592,30 @@ export default function GameDetailScreen() {
   const handleShare = useCallback(async () => {
     if (sharing) return;
     setSharing(true);
+    const message = `I earned ${earnedTotal}/${total} trophies in ${meta.name} (${meta.progress}%) on PlayStation! 🏆 via PS Companion`;
     try {
       const uri = await captureRef(shareCardRef, {
         format: "png",
         quality: 1,
         result: "tmpfile",
       });
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, {
-          mimeType: "image/png",
-          dialogTitle: "Share your trophies",
-        });
+      if (Platform.OS === "ios") {
+        // On iOS, passing both url (image) and message (text) populates the
+        // pre-fill text field AND attaches the image in the native share sheet.
+        await Share.share({ message, url: uri });
       } else {
-        await Share.share({
-          message: `I earned ${earnedTotal}/${total} trophies in ${meta.name} (${meta.progress}%) on PlayStation! 🏆`,
-        });
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(uri, {
+            mimeType: "image/png",
+            dialogTitle: "Share your trophies",
+          });
+        } else {
+          await Share.share({ message });
+        }
       }
     } catch {
-      // User cancelled or capture failed — fall back to text share
-      await Share.share({
-        message: `I earned ${earnedTotal}/${total} trophies in ${meta.name} (${meta.progress}%) on PlayStation! 🏆`,
-      }).catch(() => {});
+      await Share.share({ message }).catch(() => {});
     } finally {
       setSharing(false);
     }
