@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
-import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useRef, useState } from "react";
 
 import {

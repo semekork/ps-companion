@@ -4,7 +4,10 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { QueryClient } from "@tanstack/react-query";
-import { PersistQueryClientProvider, Persister } from "@tanstack/react-query-persist-client";
+import {
+  PersistQueryClientProvider,
+  Persister,
+} from "@tanstack/react-query-persist-client";
 import { Redirect, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
