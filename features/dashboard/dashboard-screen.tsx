@@ -64,7 +64,7 @@ export default function DashboardScreen() {
     <View className="flex-1 bg-black">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

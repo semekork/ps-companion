@@ -377,7 +377,7 @@ export default function FriendsScreen() {
   return (
     <SectionList<FriendPresence, Section>
       style={{ flex: 1, backgroundColor: bg }}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
       sections={sections}
       keyExtractor={(item) => item.accountId}
       ListHeaderComponent={ListHeader}

@@ -260,7 +260,7 @@ export default function NewsScreen() {
   return (
     <FlatList<BlogPost>
       style={{ flex: 1, backgroundColor: bg }}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
       data={posts}
       keyExtractor={(p) => p.id}
       renderItem={renderPost}

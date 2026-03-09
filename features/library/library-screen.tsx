@@ -745,7 +745,7 @@ export default function LibraryScreen() {
     <>
       <Animated.View style={[{ flex: 1, backgroundColor: bg }, listStyle]}>
         <FlatList<LibraryGame>
-          contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
           data={games}
           keyExtractor={(g) => g.npCommunicationId}
           renderItem={renderGame}

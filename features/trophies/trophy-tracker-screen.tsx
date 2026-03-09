@@ -772,7 +772,7 @@ export default function TrophyTrackerScreen() {
     <View style={{ flex: 1 }}>
       <FlatList<LibraryGame>
         style={[styles.list, { backgroundColor: bg }]}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
         data={isLoading ? [] : games}
         keyExtractor={(g) => g.npCommunicationId}
         renderItem={renderItem}

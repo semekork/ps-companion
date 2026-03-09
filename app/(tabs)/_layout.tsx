@@ -1,66 +1,56 @@
-import { Tabs } from "expo-router";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import {
+  Icon,
+  Label,
+  NativeTabs,
+  VectorIcon,
+} from "expo-router/unstable-native-tabs";
 import React from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-import { AnimatedTabBar } from "@/components/animated-tab-bar";
-
-import { IconSymbol } from "@/components/ui/icon-symbol";
 
 export default function TabLayout() {
-  const insets = useSafeAreaInsets();
-
   return (
-    <Tabs
-      tabBar={(props) => <AnimatedTabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={26} name="house.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="library"
-        options={{
-          title: "Library",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={26} name="gamecontroller.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="trophies"
-        options={{
-          title: "Trophies",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={26} name="trophy.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="friends"
-        options={{
-          title: "Friends",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={26} name="person.2.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="news"
-        options={{
-          title: "News",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={26} name="newspaper.fill" color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+    <NativeTabs tintColor="#0070D1">
+      <NativeTabs.Trigger name="index">
+        <Icon
+          sf="house.fill"
+          androidSrc={<VectorIcon family={MaterialIcons} name="home" />}
+        />
+        <Label>Home</Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="library">
+        <Icon
+          sf="gamecontroller.fill"
+          androidSrc={
+            <VectorIcon family={MaterialIcons} name="sports-esports" />
+          }
+        />
+        <Label>Library</Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="trophies">
+        <Icon
+          sf="trophy.fill"
+          androidSrc={<VectorIcon family={MaterialIcons} name="emoji-events" />}
+        />
+        <Label>Trophies</Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="friends">
+        <Icon
+          sf="person.2.fill"
+          androidSrc={<VectorIcon family={MaterialIcons} name="group" />}
+        />
+        <Label>Friends</Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="news">
+        <Icon
+          sf="newspaper.fill"
+          androidSrc={<VectorIcon family={MaterialIcons} name="article" />}
+        />
+        <Label>News</Label>
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }
