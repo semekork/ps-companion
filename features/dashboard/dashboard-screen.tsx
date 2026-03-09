@@ -14,7 +14,6 @@ import { PlatformBadge } from "@/components/platform-badge";
 import { ProgressRing } from "@/components/progress-ring";
 import { PsnAvatar } from "@/components/psn-avatar";
 import { Skeleton } from "@/components/skeleton-placeholder";
-import { useAuth } from "@/context/auth-context";
 import { useUser } from "@/context/user-context";
 import type { LibraryGame } from "@/types/psn";
 import {
@@ -29,7 +28,6 @@ const PS_DARK = "#00439C";
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { signOut } = useAuth();
   const { profile, trophySummary } = useUser();
 
   const continuePlaying = useContinuePlaying();
@@ -101,7 +99,7 @@ export default function DashboardScreen() {
             {/* Avatar + name */}
             <Pressable
               className="flex-row items-center gap-x-2 active:opacity-70"
-              onPress={signOut}
+              onPress={() => router.push("/profile")}
               hitSlop={8}
             >
               <View className="items-end">
