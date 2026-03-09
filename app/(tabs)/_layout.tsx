@@ -3,6 +3,7 @@ import React from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AnimatedTabBar } from "@/components/animated-tab-bar";
+
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
 export default function TabLayout() {
@@ -13,10 +14,6 @@ export default function TabLayout() {
       tabBar={(props) => <AnimatedTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-      }}
-      sceneContainerStyle={{
-        // Leave room for the floating bar (height ~68) + its bottom margin + safe area
-        paddingBottom: insets.bottom + 88,
       }}
     >
       <Tabs.Screen

@@ -21,6 +21,8 @@ import {
   useFriendsOnline,
   useLatestNews,
 } from "./use-dashboard";
+// Assets
+const pslogo = require("../../assets/images/ps-logo.png");
 
 // ─── Palette shortcuts ───────────────────────────────────────────────────────
 const PS_BLUE = "#0070D1";
@@ -89,7 +91,11 @@ export default function DashboardScreen() {
                 className="w-8 h-8 rounded-lg items-center justify-center"
                 style={{ backgroundColor: PS_BLUE }}
               >
-                <Text className="text-white font-black text-sm">PS</Text>
+                <Image
+                  source={pslogo}
+                  style={{ width: 44, height: 40 }}
+                  contentFit="contain"
+                />
               </View>
               <Text className="text-white font-semibold text-base">
                 Companion

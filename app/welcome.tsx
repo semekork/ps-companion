@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -81,7 +81,10 @@ export default function WelcomeScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.logoBox}
           >
-            <Text style={styles.logoText}>PS</Text>
+            <Image
+              source={require("../assets/images/ps-logo.png")}
+              style={styles.logo}
+            />
           </LinearGradient>
           <Text style={styles.wordmark}>Companion</Text>
         </Animated.View>
@@ -147,7 +150,7 @@ const TILE_COLORS = [
 ];
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#000" },
+  root: { flex: 1 },
 
   // Decorative glow
   glowBlob: {
@@ -219,6 +222,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  logo: {
+    width: 44,
+    height: 22,
+  },
   logoText: {
     color: "#fff",
     fontWeight: "900",
@@ -258,6 +265,7 @@ const styles = StyleSheet.create({
     height: 56,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 16,
   },
   loginBtnText: {
     color: "#fff",

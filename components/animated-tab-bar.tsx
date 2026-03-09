@@ -32,22 +32,22 @@ export function AnimatedTabBar({
     <View
       style={{
         position: "absolute",
-        bottom: insets.bottom + 10,
-        left: 20,
-        right: 20,
-        backgroundColor: "rgba(18, 18, 20, 0.92)",
-        borderRadius: 28,
+        bottom: insets.bottom + 12,
+        left: 24,
+        right: 24,
+        backgroundColor: "rgba(10, 10, 12, 0.96)",
+        borderRadius: 32,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.07)",
+        borderColor: "rgba(255, 255, 255, 0.1)",
         flexDirection: "row",
-        paddingVertical: 14,
-        paddingHorizontal: 6,
+        paddingVertical: 12,
+        paddingHorizontal: 8,
         // shadow
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.45,
-        shadowRadius: 20,
-        elevation: 20,
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.6,
+        shadowRadius: 24,
+        elevation: 24,
       }}
     >
       {state.routes.map((route, index) => {
@@ -104,20 +104,32 @@ function TabItem({
     transform: [{ scale: scale.value }],
   }));
 
-  const iconColor = isActive ? PS_BLUE : "#6B6B75";
+  const iconColor = isActive ? "#fff" : "#8E8E93";
+  const activeBg = isActive ? PS_BLUE : "transparent";
 
   return (
     <Pressable
       onPress={handlePress}
       style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
-      hitSlop={4}
+      hitSlop={8}
     >
-      {/* Icon */}
-      <Animated.View style={iconContainerStyle}>
+      <Animated.View
+        style={[
+          iconContainerStyle,
+          {
+            backgroundColor: activeBg,
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            alignItems: "center",
+            justifyContent: "center",
+          },
+        ]}
+      >
         {options.tabBarIcon?.({
           focused: isActive,
           color: iconColor,
-          size: 24,
+          size: 22,
         })}
       </Animated.View>
     </Pressable>

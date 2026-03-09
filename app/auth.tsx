@@ -3,12 +3,14 @@ import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useRef, useState } from "react";
 
+import { NpssoLoginModal } from "@/components/npsso-login-modal";
 import {
   NpssoWebAuth,
   type NpssoWebAuthRef,
 } from "@/components/npsso-web-auth";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -33,12 +35,28 @@ export default function AuthScreen() {
   const [npsso, setNpsso] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isWebAuthing, setIsWebAuthing] = useState(false);
+  const [showNpssoInput, setShowNpssoInput] = useState(false);
+  const [showWebView, setShowWebView] = useState(false);
+
+  async function handleAutoSignIn() {
+    if (busy) return;
+    setValidationError(null);
+    setShowWebView(true);
+  }
+
+  const handleWebViewSuccess = (token: string) => {
+    setShowWebView(false);
+    setNpsso(token);
+    handleSignIn(token);
+  };
+
   const webAuthRef = useRef<NpssoWebAuthRef>(null);
 
   const busy = isLoading || isWebAuthing;
 
-  async function handleSignIn() {
-    const token = npsso.trim();
+  async function handleSignIn(explicitToken?: string | any) {
+    const rawToken = typeof explicitToken === "string" ? explicitToken : npsso;
+    const token = rawToken.trim();
     if (!token || busy) return;
     setValidationError(null);
 
@@ -56,6 +74,7 @@ export default function AuthScreen() {
       const code = await webAuthRef.current!.authenticate(token);
       // Step 2: exchange code for access + refresh tokens via context.
       await signIn(code);
+
       // Navigate to the dashboard now that auth state is set.
       router.replace("/(tabs)");
     } catch (err) {
@@ -96,7 +115,10 @@ export default function AuthScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.logoBox}
           >
-            <Text style={styles.logoText}>PS</Text>
+            <Image
+              source={require("../assets/images/ps-logo.png")}
+              style={styles.logo}
+            />
           </LinearGradient>
           <Text style={styles.title}>Sign In</Text>
           <Text style={styles.subtitle}>
@@ -104,98 +126,159 @@ export default function AuthScreen() {
           </Text>
         </View>
 
-        {/* ── Instructions card ── */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>How to get your NPSSO token</Text>
-
-          <Step number={1}>
-            <Text style={styles.stepText}>
-              Sign in at{" "}
-              <Text
-                style={styles.link}
-                onPress={() => WebBrowser.openBrowserAsync(PSN_LOGIN_URL)}
-              >
-                playstation.com
-              </Text>{" "}
-              in your browser
-            </Text>
-          </Step>
-
-          <Step number={2}>
-            <Text style={styles.stepText}>
-              Open the{" "}
-              <Text
-                style={styles.link}
-                onPress={() => WebBrowser.openBrowserAsync(NPSSO_URL)}
-              >
-                SSO cookie page
-              </Text>{" "}
-              — it shows a JSON response
-            </Text>
-          </Step>
-
-          <Step number={3}>
-            <Text style={styles.stepText}>
-              Copy the 64-character value next to{" "}
-              <Text style={styles.mono}>&quot;npsso&quot;</Text> and paste it
-              below
-            </Text>
-          </Step>
-        </View>
-
-        {/* ── Input ── */}
-        <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>NPSSO Token</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Paste your 64-character NPSSO token"
-            placeholderTextColor="rgba(255,255,255,0.25)"
-            value={npsso}
-            onChangeText={setNpsso}
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoComplete="off"
-            secureTextEntry={false}
-            multiline={false}
-            returnKeyType="done"
-            onSubmitEditing={handleSignIn}
-          />
-
-          {displayError ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{displayError}</Text>
-            </View>
-          ) : null}
-
+        {/* ── OAuth Sign In (new users) ── */}
+        <View style={styles.oauthSection}>
           <Pressable
-            onPress={handleSignIn}
-            disabled={busy || !npsso.trim()}
+            onPress={handleAutoSignIn}
+            disabled={busy}
             style={({ pressed }) => [
-              styles.signInBtn,
-              (busy || !npsso.trim()) && { opacity: 0.4 },
-              pressed && { opacity: 0.88, transform: [{ scale: 0.978 }] },
+              styles.oauthBtn,
+              busy && { opacity: 0.5 },
+              pressed && { opacity: 0.88 },
             ]}
           >
             <LinearGradient
               colors={[PS_BLUE, PS_DARK]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={styles.signInBtnGradient}
+              style={styles.oauthBtnGradient}
             >
-              {busy ? (
+              {busy && !isWebAuthing ? (
                 <ActivityIndicator color="#ffffff" />
               ) : (
-                <Text style={styles.signInBtnText}>Sign In</Text>
+                <Text style={styles.oauthBtnText}>
+                  Sign In with PlayStation
+                </Text>
               )}
             </LinearGradient>
           </Pressable>
+          <Text style={styles.oauthDescription}>
+            Safe, secure, one-time login to your PSN account
+          </Text>
         </View>
+
+        {/* ── Divider ── */}
+        <View style={styles.divider} />
+
+        {/* ── Error message ── */}
+        {displayError ? (
+          <View
+            style={[
+              styles.errorBox,
+              { marginHorizontal: 20, marginBottom: 16 },
+            ]}
+          >
+            <Text style={styles.errorText}>{displayError}</Text>
+          </View>
+        ) : null}
+
+        {/* ── NPSSO Input (fallback/advanced) ── */}
+        {showNpssoInput && (
+          <View style={styles.inputSection}>
+            <Text style={styles.inputLabel}>NPSSO Token (Advanced)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Paste your 64-character NPSSO token"
+              placeholderTextColor="rgba(255,255,255,0.25)"
+              value={npsso}
+              onChangeText={setNpsso}
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="off"
+              secureTextEntry={false}
+              multiline={false}
+              returnKeyType="done"
+              onSubmitEditing={handleSignIn}
+            />
+
+            <Pressable
+              onPress={handleSignIn}
+              disabled={busy || !npsso.trim()}
+              style={({ pressed }) => [
+                styles.signInBtn,
+                (busy || !npsso.trim()) && { opacity: 0.4 },
+                pressed && { opacity: 0.88, transform: [{ scale: 0.978 }] },
+              ]}
+            >
+              <LinearGradient
+                colors={[PS_BLUE, PS_DARK]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.signInBtnGradient}
+              >
+                {busy ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={styles.signInBtnText}>Sign In with Token</Text>
+                )}
+              </LinearGradient>
+            </Pressable>
+          </View>
+        )}
+
+        {/* ── Show NPSSO Instructions Card ── */}
+        {!showNpssoInput && (
+          <View style={styles.instructionsWrapper}>
+            <Pressable
+              onPress={() => setShowNpssoInput(true)}
+              style={({ pressed }) => [pressed && { opacity: 0.7 }]}
+            >
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>Need help?</Text>
+                <Text style={styles.cardSubtext}>
+                  Tap to use NPSSO token (advanced method)
+                </Text>
+              </View>
+            </Pressable>
+          </View>
+        )}
+
+        {/* ── Instructions when showing NPSSO ── */}
+        {showNpssoInput && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>How to get your NPSSO token</Text>
+
+            <Step number={1}>
+              <Text style={styles.stepText}>
+                Sign in at{" "}
+                <Text
+                  style={styles.link}
+                  onPress={() => WebBrowser.openBrowserAsync(PSN_LOGIN_URL)}
+                >
+                  playstation.com
+                </Text>{" "}
+                in your browser
+              </Text>
+            </Step>
+
+            <Step number={2}>
+              <Text style={styles.stepText}>
+                Open the{" "}
+                <Text
+                  style={styles.link}
+                  onPress={() => WebBrowser.openBrowserAsync(NPSSO_URL)}
+                >
+                  SSO cookie page
+                </Text>{" "}
+                — it shows a JSON response
+              </Text>
+            </Step>
+
+            <Step number={3}>
+              <Text style={styles.stepText}>
+                Copy the 64-character value next to{" "}
+                <Text style={styles.mono}>&quot;npsso&quot;</Text> and paste it
+                above
+              </Text>
+            </Step>
+          </View>
+        )}
 
         {/* ── Footer note ── */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Your NPSSO token is stored securely on-device using the system
-            keychain. It is never sent anywhere except PlayStation Network
+            Your credentials are stored securely on-device using the system
+            keychain. They are never sent anywhere except PlayStation Network
             servers.
           </Text>
         </View>
@@ -203,6 +286,13 @@ export default function AuthScreen() {
 
       {/* Hidden WebView handles NPSSO → auth-code exchange */}
       <NpssoWebAuth ref={webAuthRef} />
+
+      {/* Visible WebView handles User Login → NPSSO extraction */}
+      <NpssoLoginModal
+        visible={showWebView}
+        onClose={() => setShowWebView(false)}
+        onSuccess={handleWebViewSuccess}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -265,11 +355,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 20,
   },
-  logoText: {
-    color: "#fff",
-    fontWeight: "900",
-    fontSize: 26,
-    letterSpacing: -0.5,
+  logo: {
+    width: 44,
+    height: 44,
   },
   title: {
     color: "#fff",
@@ -283,6 +371,71 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: "center",
     lineHeight: 22,
+  },
+
+  biometricSection: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+    gap: 8,
+  },
+  biometricBtn: {
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  biometricBtnGradient: {
+    height: 56,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+    flexDirection: "row",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "rgba(77, 166, 255, 0.3)",
+  },
+  biometricBtnEmoji: { fontSize: 20 },
+  biometricBtnText: {
+    color: PS_BLUE,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+
+  oauthSection: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+    gap: 8,
+  },
+  oauthBtn: {
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  oauthBtnGradient: {
+    height: 56,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+  },
+  oauthBtnText: {
+    color: "#fff",
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+  oauthDescription: {
+    color: "rgba(255,255,255,0.35)",
+    fontSize: 12,
+    textAlign: "center",
+  },
+
+  divider: {
+    marginHorizontal: 20,
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    marginVertical: 16,
+  },
+
+  instructionsWrapper: {
+    marginHorizontal: 20,
+    marginBottom: 20,
   },
 
   card: {
@@ -300,6 +453,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 15,
     marginBottom: 4,
+  },
+  cardSubtext: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 13,
   },
 
   stepRow: {
@@ -338,6 +495,7 @@ const styles = StyleSheet.create({
 
   inputSection: {
     marginHorizontal: 20,
+    marginBottom: 20,
     gap: 12,
   },
   inputLabel: {
@@ -377,6 +535,7 @@ const styles = StyleSheet.create({
     height: 56,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 16,
   },
   signInBtnText: {
     color: "#fff",
