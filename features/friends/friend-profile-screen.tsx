@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
@@ -457,6 +457,8 @@ function ProfileHeader({
   cardBg,
 }: HeaderProps) {
   const onlineColor = isOnline ? "#4CAF50" : "#48484A";
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
     <View>
@@ -498,6 +500,18 @@ function ProfileHeader({
             backgroundColor: onlineColor,
           }}
         />
+        {/* Back button */}
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.backBtn,
+            { top: insets.top + 12 },
+            pressed && { opacity: 0.6 },
+          ]}
+        >
+          <Text style={styles.backIcon}>‹</Text>
+        </Pressable>
       </View>
 
       {/* ── Avatar + Identity ────────────────────────────── */}
@@ -765,6 +779,24 @@ export default function FriendProfileScreen() {
 // ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
+  backBtn: {
+    position: "absolute",
+    top: 12, // overridden at runtime with insets.top + 12
+    left: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backIcon: {
+    color: "#fff",
+    fontSize: 26,
+    lineHeight: 30,
+    fontWeight: "300",
+    marginTop: -2,
+  },
   identityRow: {
     flexDirection: "row",
     alignItems: "flex-end",

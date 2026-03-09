@@ -114,6 +114,14 @@ function RootNavigator() {
           }}
         />
         <Stack.Screen
+          name="profile"
+          options={{
+            headerShown: false,
+            animation: "slide_from_right",
+            gestureDirection: "horizontal",
+          }}
+        />
+        <Stack.Screen
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}
         />

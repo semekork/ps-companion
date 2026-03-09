@@ -711,6 +711,19 @@ export default function GameDetailScreen() {
         onRefresh={refetch}
       />
 
+      {/* Fixed back button — stays visible while scrolling */}
+      <Pressable
+        onPress={() => router.back()}
+        hitSlop={8}
+        style={({ pressed }) => [
+          styles.backBtn,
+          { top: insets.top + 12 },
+          pressed && { opacity: 0.6 },
+        ]}
+      >
+        <Text style={styles.backIcon}>‹</Text>
+      </Pressable>
+
       {/* FAB — share button */}
       <Animated.View
         style={[
