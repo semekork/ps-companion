@@ -58,7 +58,7 @@ export default function DashboardScreen() {
 
   return (
     <View className="flex-1 bg-black">
-      {/* ── Fixed Hero Background (PS5 Style) ─────────────── */}
+      {/* ── Fixed Hero Background  ─────────────── */}
       {hero ? (
         <View
           style={{
@@ -194,7 +194,7 @@ export default function DashboardScreen() {
               style={{ backgroundColor: "white" }}
               onPress={() => handleOpenGame(hero)}
             >
-              <Text className="text-black text-sm font-bold">Play Game</Text>
+              <Text className="text-black text-sm font-bold">Open Game</Text>
             </Pressable>
           </View>
         )}
