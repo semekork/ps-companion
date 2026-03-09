@@ -1,5 +1,4 @@
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import React, { useCallback } from "react";
 import {
@@ -20,7 +19,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useThemeColor } from "@/hooks/use-theme-color";
 import type { BlogPost } from "@/types/psn";
 import { useNews } from "./use-news";
 
@@ -28,13 +26,16 @@ import { useNews } from "./use-news";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatDate(iso: string): string {
+function formatRelativeDate(iso: string): string {
   if (!iso) return "";
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  const diff = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  return `${Math.floor(days / 365)}y ago`;
 }
 
 // ---------------------------------------------------------------------------
@@ -56,13 +57,54 @@ function SkeletonCard() {
   const style = useAnimatedStyle(() => ({ opacity: pulse.value }));
 
   return (
-    <Animated.View style={[styles.skeletonCard, style]}>
-      <View style={styles.skeletonImage} />
-      <View style={styles.skeletonBody}>
-        <View style={styles.skeletonTag} />
-        <View style={[styles.skeletonLine, { width: "90%" }]} />
-        <View style={[styles.skeletonLine, { width: "65%" }]} />
-        <View style={styles.skeletonDate} />
+    <Animated.View
+      style={[
+        {
+          marginHorizontal: 20,
+          marginVertical: 10,
+          backgroundColor: "#18181b", // zinc-900 equivalent
+          borderRadius: 12,
+          overflow: "hidden",
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.05)",
+        },
+        style,
+      ]}
+    >
+      <View
+        style={{
+          width: "100%",
+          height: 210,
+          backgroundColor: "rgba(255,255,255,0.05)",
+        }}
+      />
+      <View style={{ padding: 16 }}>
+        <View
+          style={{
+            width: 100,
+            height: 12,
+            backgroundColor: "rgba(255,255,255,0.08)",
+            marginBottom: 16,
+            borderRadius: 4,
+          }}
+        />
+        <View
+          style={{
+            width: "90%",
+            height: 16,
+            backgroundColor: "rgba(255,255,255,0.08)",
+            marginBottom: 8,
+            borderRadius: 4,
+          }}
+        />
+        <View
+          style={{
+            width: "65%",
+            height: 16,
+            backgroundColor: "rgba(255,255,255,0.08)",
+            borderRadius: 4,
+          }}
+        />
       </View>
     </Animated.View>
   );
@@ -78,14 +120,10 @@ const NewsCard = React.memo(function NewsCard({
   post,
   index,
   animate,
-  subtle,
-  tint,
 }: {
   post: BlogPost;
   index: number;
   animate: boolean;
-  subtle: string;
-  tint: string;
 }) {
   const scale = useSharedValue(1);
   const cardStyle = useAnimatedStyle(() => ({
@@ -114,10 +152,12 @@ const NewsCard = React.memo(function NewsCard({
         onPressOut={() => {
           scale.value = withTiming(1, { duration: 150 });
         }}
-        style={[styles.card, cardStyle]}
+        className="mx-5 my-2.5 bg-zinc-900 rounded-xl overflow-hidden border border-white/5"
+        style={cardStyle}
       >
-        {/* Thumbnail */}
-        <View style={styles.imageWrap}>
+        <View
+          style={{ height: 210, width: "100%", backgroundColor: "#1C1C1E" }}
+        >
           {post.thumbnailUrl ? (
             <Image
               source={{ uri: post.thumbnailUrl }}
@@ -126,30 +166,21 @@ const NewsCard = React.memo(function NewsCard({
               transition={200}
             />
           ) : (
-            <View style={[StyleSheet.absoluteFill, styles.imageFallback]}>
-              <Text style={styles.imageFallbackText}>📰</Text>
+            <View className="flex-1 items-center justify-center">
+              <Text className="text-5xl">📰</Text>
             </View>
           )}
-          <LinearGradient
-            colors={["transparent", "rgba(0,0,0,0.82)"]}
-            locations={[0.35, 1]}
-            style={[StyleSheet.absoluteFill, styles.imageGradient]}
-          />
-          {/* Category badge */}
-          <View style={[styles.categoryBadge, { backgroundColor: tint }]}>
-            <Text style={styles.categoryText} numberOfLines={1}>
-              {post.category}
-            </Text>
-          </View>
-          {/* Title + date overlay */}
-          <View style={styles.imageOverlay}>
-            <Text style={styles.cardTitle} numberOfLines={3}>
-              {post.title}
-            </Text>
-            <Text style={[styles.cardDate, { color: "rgba(255,255,255,0.6)" }]}>
-              {formatDate(post.publishedAt)}
-            </Text>
-          </View>
+        </View>
+        <View className="p-4 bg-zinc-900 border-t border-white/5">
+          <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">
+            {post.category} • {formatRelativeDate(post.publishedAt)}
+          </Text>
+          <Text
+            className="text-white font-semibold text-lg leading-snug"
+            numberOfLines={3}
+          >
+            {post.title}
+          </Text>
         </View>
       </AnimatedPressable>
     </Animated.View>
@@ -162,18 +193,6 @@ const NewsCard = React.memo(function NewsCard({
 
 export default function NewsScreen() {
   const insets = useSafeAreaInsets();
-
-  const bg = useThemeColor({}, "background") as string;
-  const text = useThemeColor({}, "text") as string;
-  const tint = useThemeColor({}, "tint") as string;
-  const subtle = useThemeColor(
-    { light: "#8E8E93", dark: "#636366" },
-    "icon",
-  ) as string;
-  const inputBg = useThemeColor(
-    { light: "#E5E5EA", dark: "#2C2C2E" },
-    "background",
-  ) as string;
 
   const {
     posts,
@@ -188,27 +207,23 @@ export default function NewsScreen() {
 
   const renderPost = useCallback(
     ({ item, index }: { item: BlogPost; index: number }) => (
-      <NewsCard
-        post={item}
-        index={index}
-        animate={isLoading}
-        subtle={subtle}
-        tint={tint}
-      />
+      <NewsCard post={item} index={index} animate={isLoading} />
     ),
-    [subtle, tint, isLoading],
+    [isLoading],
   );
 
   const ListHeader = (
-    <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-      <Text style={[styles.heading, { color: text }]}>News</Text>
-      <View style={styles.headerRight}>
+    <View
+      className="flex-row items-center justify-between px-5 mb-4"
+      style={{ paddingTop: insets.top + 12 }}
+    >
+      <Text className="text-white text-2xl font-bold tracking-tight">
+        Official News
+      </Text>
+      <View className="flex-row items-center gap-x-2">
         {isFetching && !isLoading && !isFetchingNextPage && (
-          <ActivityIndicator size="small" color={tint} />
+          <ActivityIndicator size="small" color="#fff" />
         )}
-        <Text style={[styles.subheading, { color: subtle }]}>
-          PlayStation Blog
-        </Text>
       </View>
     </View>
   );
@@ -216,13 +231,13 @@ export default function NewsScreen() {
   const ListFooter = hasNextPage ? (
     <Pressable
       onPress={() => fetchNextPage()}
-      style={[styles.loadMoreBtn, { borderColor: tint }]}
+      className="self-center border border-white/20 rounded-lg px-8 py-2.5 mt-4 mb-8 min-w-[120px] items-center active:bg-white/10"
       disabled={isFetchingNextPage}
     >
       {isFetchingNextPage ? (
-        <ActivityIndicator size="small" color={tint} />
+        <ActivityIndicator size="small" color="#fff" />
       ) : (
-        <Text style={[styles.loadMoreText, { color: tint }]}>Load more</Text>
+        <Text className="text-white text-sm font-semibold">Load more</Text>
       )}
     </Pressable>
   ) : null;
@@ -230,16 +245,17 @@ export default function NewsScreen() {
   if (isError) {
     return (
       <View
-        style={[styles.center, { backgroundColor: bg, paddingTop: insets.top }]}
+        className="flex-1 items-center justify-center bg-black"
+        style={{ paddingTop: insets.top }}
       >
-        <Text style={[styles.stateTitle, { color: text }]}>
+        <Text className="text-white text-base font-semibold mb-3">
           Could not load news
         </Text>
         <Pressable
           onPress={() => refetch()}
-          style={[styles.retryBtn, { borderColor: tint }]}
+          className="border border-white/20 rounded-lg px-7 py-2.5 active:bg-white/10"
         >
-          <Text style={[styles.retryText, { color: tint }]}>Try again</Text>
+          <Text className="text-white text-sm font-semibold">Try again</Text>
         </Pressable>
       </View>
     );
@@ -247,9 +263,8 @@ export default function NewsScreen() {
 
   if (isLoading) {
     return (
-      <View style={[{ flex: 1, backgroundColor: bg }]}>
+      <View className="flex-1 bg-black">
         {ListHeader}
-        <View style={[styles.divider, { backgroundColor: inputBg }]} />
         {Array.from({ length: 6 }).map((_, i) => (
           <SkeletonCard key={i} />
         ))}
@@ -259,28 +274,20 @@ export default function NewsScreen() {
 
   return (
     <FlatList<BlogPost>
-      style={{ flex: 1, backgroundColor: bg }}
+      className="flex-1 bg-black"
       contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
       data={posts}
       keyExtractor={(p) => p.id}
       renderItem={renderPost}
-      ListHeaderComponent={
-        <>
-          {ListHeader}
-          <View style={[styles.divider, { backgroundColor: inputBg }]} />
-        </>
-      }
+      ListHeaderComponent={ListHeader}
       ListFooterComponent={ListFooter}
       ListEmptyComponent={
-        <View style={styles.center}>
-          <Text style={[styles.stateTitle, { color: subtle }]}>
+        <View className="flex-1 items-center justify-center pt-20">
+          <Text className="text-gray-500 text-base font-medium">
             No posts found
           </Text>
         </View>
       }
-      ItemSeparatorComponent={() => (
-        <View style={[styles.separator, { backgroundColor: inputBg }]} />
-      )}
       refreshing={isFetching && !isLoading && !isFetchingNextPage}
       onRefresh={refetch}
       initialNumToRender={10}
@@ -289,134 +296,3 @@ export default function NewsScreen() {
     />
   );
 }
-
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  heading: { fontSize: 30, fontWeight: "700", letterSpacing: -0.6 },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingBottom: 4,
-  },
-  subheading: { fontSize: 14 },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginHorizontal: 16,
-    marginBottom: 4,
-  },
-  separator: { height: StyleSheet.hairlineWidth, marginHorizontal: 16 },
-
-  // Card
-  card: { marginHorizontal: 16, marginVertical: 6 },
-  imageWrap: {
-    height: 210,
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: "#1C1C1E",
-  },
-  imageGradient: { borderRadius: 16 },
-  imageFallback: {
-    backgroundColor: "#1C1C1E",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  imageFallbackText: { fontSize: 48 },
-  categoryBadge: {
-    position: "absolute",
-    top: 12,
-    left: 12,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  categoryText: {
-    color: "#fff",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-  },
-  imageOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 14,
-    gap: 4,
-  },
-  cardTitle: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "700",
-    lineHeight: 21,
-    letterSpacing: -0.2,
-  },
-  cardDate: { fontSize: 11 },
-
-  // Skeleton
-  skeletonCard: { marginHorizontal: 16, marginVertical: 6 },
-  skeletonImage: {
-    height: 210,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.07)",
-  },
-  skeletonBody: { paddingTop: 10, gap: 8 },
-  skeletonTag: {
-    height: 16,
-    width: 64,
-    borderRadius: 6,
-    backgroundColor: "rgba(255,255,255,0.08)",
-  },
-  skeletonLine: {
-    height: 13,
-    borderRadius: 5,
-    backgroundColor: "rgba(255,255,255,0.08)",
-  },
-  skeletonDate: {
-    height: 11,
-    width: 80,
-    borderRadius: 4,
-    backgroundColor: "rgba(255,255,255,0.06)",
-  },
-
-  // Load more
-  loadMoreBtn: {
-    alignSelf: "center",
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 32,
-    paddingVertical: 10,
-    marginTop: 12,
-    marginBottom: 8,
-    minWidth: 120,
-    alignItems: "center",
-  },
-  loadMoreText: { fontSize: 14, fontWeight: "600" },
-
-  // States
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 80,
-    gap: 10,
-  },
-  stateTitle: { fontSize: 16, fontWeight: "600" },
-  retryBtn: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 28,
-    paddingVertical: 9,
-  },
-  retryText: { fontSize: 15, fontWeight: "600" },
-});
