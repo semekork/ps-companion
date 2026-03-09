@@ -91,51 +91,11 @@ function RootNavigator() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="welcome"
-          options={{ headerShown: false, animation: "fade" }}
-        />
-        <Stack.Screen
-          name="auth"
-          options={{ headerShown: false, animation: "slide_from_bottom" }}
-        />
-        <Stack.Screen
-          name="game/[titleId]"
-          options={{
-            headerShown: false,
-            animation: "slide_from_right",
-            gestureDirection: "horizontal",
-          }}
-        />
-        <Stack.Screen
-          name="friend/[accountId]"
-          options={{
-            headerShown: false,
-            animation: "slide_from_right",
-            gestureDirection: "horizontal",
-          }}
-        />
-        <Stack.Screen
-          name="profile"
-          options={{
-            headerShown: false,
-            animation: "slide_from_right",
-            gestureDirection: "horizontal",
-          }}
-        />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="welcome" options={{ animation: "fade" }} />
         <Stack.Screen
           name="modal"
-          options={{ presentation: "modal", title: "Modal" }}
-        />
-        <Stack.Screen
-          name="analytics"
-          options={{
-            headerShown: false,
-            animation: "slide_from_right",
-            gestureDirection: "horizontal",
-          }}
+          options={{ presentation: "modal", title: "Modal", headerShown: true }}
         />
       </Stack>
 

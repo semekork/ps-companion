@@ -5,12 +5,12 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   Text,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { PlatformBadge } from "@/components/platform-badge";
 import { ProgressRing } from "@/components/progress-ring";
 import { PsnAvatar } from "@/components/psn-avatar";
 import { Skeleton } from "@/components/skeleton-placeholder";
@@ -21,12 +21,9 @@ import {
   useFriendsOnline,
   useLatestNews,
 } from "./use-dashboard";
-// Assets
-const pslogo = require("../../assets/images/ps-logo.png");
 
 // ─── Palette shortcuts ───────────────────────────────────────────────────────
 const PS_BLUE = "#0070D1";
-const PS_DARK = "#00439C";
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -39,7 +36,6 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const isRefreshing = continuePlaying.isFetching || latestNews.isFetching;
   const hero = continuePlaying.data?.[0] ?? null;
-  const rest = continuePlaying.data?.slice(1) ?? [];
 
   function handleOpenGame(game: LibraryGame) {
     router.push({
@@ -62,9 +58,44 @@ export default function DashboardScreen() {
 
   return (
     <View className="flex-1 bg-black">
+      {/* ── Fixed Hero Background (PS5 Style) ─────────────── */}
+      {hero ? (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 500,
+          }}
+        >
+          <Image
+            source={{ uri: hero.imageUrl }}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+          />
+          <LinearGradient
+            colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.8)", "#000000"]}
+            locations={[0, 0.6, 1]}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </View>
+      ) : (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 500,
+            backgroundColor: "#0a0a0a",
+          }}
+        />
+      )}
+
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -74,161 +105,163 @@ export default function DashboardScreen() {
           />
         }
       >
-        {/* ── Hero header — gradient bleeds through status bar ─────── */}
-        <LinearGradient
-          colors={[PS_DARK, "#001A3A", "#000000"]}
-          locations={[0, 0.6, 1]}
-          style={{
-            paddingTop: insets.top + 12,
-            paddingBottom: 32,
-            paddingHorizontal: 20,
-          }}
+        {/* ── Top Bar ───────────────────────────────────────── */}
+        <View
+          className="flex-row items-center justify-between px-5 mb-10"
+          style={{ paddingTop: insets.top + 12 }}
         >
-          <View className="flex-row items-center justify-between mb-6">
-            {/* Branding */}
-            <View className="flex-row items-center gap-x-2">
-              <View
-                className="w-8 h-8 rounded-lg items-center justify-center"
-                style={{ backgroundColor: PS_BLUE }}
-              >
-                <Image
-                  source={pslogo}
-                  style={{ width: 44, height: 40 }}
-                  contentFit="contain"
-                />
-              </View>
-              <Text className="text-white font-semibold text-base">
-                Companion
-              </Text>
-            </View>
-
-            {/* Avatar + name */}
-            <Pressable
-              className="flex-row items-center gap-x-2 active:opacity-70"
-              onPress={() => router.push("/profile")}
-              hitSlop={8}
-            >
-              <View className="items-end">
-                <Text className="text-white text-sm font-semibold leading-4">
-                  {profile?.onlineId ?? "—"}
-                </Text>
-                {profile?.isPsPlus && (
-                  <View
-                    className="mt-0.5 px-1.5 py-0.5 rounded"
-                    style={{ backgroundColor: "#F9AA00" }}
-                  >
-                    <Text className="text-black text-[9px] font-black tracking-wider">
-                      PS PLUS
-                    </Text>
-                  </View>
-                )}
-              </View>
-              <PsnAvatar
-                uri={profile?.avatarUrl}
-                onlineId={profile?.onlineId}
-                size={40}
-                isOnline={profile?.primaryOnlineStatus === "online"}
-              />
-            </Pressable>
+          <View className="flex-row items-baseline gap-x-6">
+            <Text className="text-white text-xl font-bold">Games</Text>
+            <Text className="text-gray-400 text-lg font-semibold">Media</Text>
           </View>
+          <Pressable
+            className="active:opacity-70"
+            onPress={() => router.push("/profile")}
+            hitSlop={8}
+          >
+            <PsnAvatar
+              uri={profile?.avatarUrl}
+              onlineId={profile?.onlineId}
+              size={36}
+              isOnline={profile?.primaryOnlineStatus === "online"}
+            />
+          </Pressable>
+        </View>
 
-          {/* Trophy level strip */}
-          {trophySummary ? (
-            <View className="flex-row items-center gap-x-4">
-              <ProgressRing
-                progress={trophySummary.progress}
-                size={60}
-                color={PS_BLUE}
-                strokeWidth={5}
-              >
-                <View className="items-center">
-                  <Text className="text-white font-black text-sm leading-none">
-                    {trophySummary.trophyLevel}
-                  </Text>
-                  <Text className="text-gray-400 text-[9px]">LV</Text>
-                </View>
-              </ProgressRing>
-
-              <View className="flex-1">
-                <Text className="text-gray-400 text-xs mb-1.5">
-                  Trophy Level · Tier {trophySummary.tier} ·{" "}
-                  {trophySummary.progress}% to next
-                </Text>
-                <View className="flex-row gap-x-3">
-                  <TrophyPill
-                    color="#B468F0"
-                    label="PLT"
-                    count={trophySummary.earnedTrophies.platinum}
-                  />
-                  <TrophyPill
-                    color="#E8B420"
-                    label="GLD"
-                    count={trophySummary.earnedTrophies.gold}
-                  />
-                  <TrophyPill
-                    color="#9BA7AF"
-                    label="SLV"
-                    count={trophySummary.earnedTrophies.silver}
-                  />
-                  <TrophyPill
-                    color="#C47A3A"
-                    label="BRZ"
-                    count={trophySummary.earnedTrophies.bronze}
-                  />
-                </View>
-              </View>
-            </View>
-          ) : (
-            <View className="flex-row gap-x-4">
-              <Skeleton width={60} height={60} borderRadius={30} />
-              <View className="flex-1 justify-center gap-y-2">
-                <Skeleton width={160} height={10} borderRadius={5} />
-                <Skeleton width={120} height={10} borderRadius={5} />
-              </View>
-            </View>
-          )}
-        </LinearGradient>
-
-        {/* ── Continue Playing (hero game) ─────────────────────────────── */}
-        <View className="px-4 mt-6">
-          <SectionHeader
-            title="Continue Playing"
-            action="See All"
-            onAction={() => router.push("/(tabs)/library")}
-          />
-
+        {/* ── Game Shelf ────────────────────────────────────── */}
+        <View>
           {continuePlaying.isLoading ? (
-            <Skeleton width="100%" height={180} borderRadius={16} />
-          ) : hero ? (
-            <HeroGameCard game={hero} onPress={() => handleOpenGame(hero)} />
+            <View className="flex-row px-5 gap-x-3">
+              {[0, 1, 2, 3].map((i) => (
+                <Skeleton key={i} width={72} height={72} borderRadius={8} />
+              ))}
+            </View>
+          ) : continuePlaying.data && continuePlaying.data.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+            >
+              {continuePlaying.data.map((game, i) => {
+                const isSelected = i === 0;
+                return (
+                  <Pressable
+                    key={game.npCommunicationId}
+                    onPress={() => handleOpenGame(game)}
+                    className="active:opacity-80"
+                  >
+                    <View
+                      className={`rounded-lg overflow-hidden ${
+                        isSelected
+                          ? "border-2 border-white"
+                          : "border border-white/10"
+                      }`}
+                      style={{ width: 72, height: 72 }}
+                    >
+                      <Image
+                        source={{ uri: game.imageUrl }}
+                        style={{ width: "100%", height: "100%" }}
+                        contentFit="cover"
+                      />
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
           ) : (
-            <EmptyState label="No recently played games." />
+            <View className="px-5">
+              <EmptyState label="No recently played games." />
+            </View>
           )}
         </View>
 
-        {/* ── Game shelf (horizontal scroll) ──────────────────────────── */}
-        {!continuePlaying.isLoading && rest.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingHorizontal: 16,
-              paddingTop: 12,
-              gap: 10,
-            }}
-          >
-            {rest.map((game: LibraryGame) => (
-              <GameShelfCard
-                key={game.npCommunicationId}
-                game={game}
-                onPress={() => handleOpenGame(game)}
-              />
-            ))}
-          </ScrollView>
+        {/* ── Hero Info & Action ────────────────────────────── */}
+        {hero && (
+          <View className="px-5 mt-8 mb-10">
+            <Text
+              className="text-white font-bold text-3xl leading-tight mb-1"
+              numberOfLines={2}
+            >
+              {hero.name}
+            </Text>
+            <Text className="text-gray-300 text-sm mb-6">
+              {hero.platform} • Last played{" "}
+              {formatRelativeDate(hero.lastTrophyEarnedAt)}
+            </Text>
+
+            <Pressable
+              className="flex-row items-center justify-center rounded-lg px-8 py-3 self-start active:opacity-80"
+              style={{ backgroundColor: "white" }}
+              onPress={() => handleOpenGame(hero)}
+            >
+              <Text className="text-black text-sm font-bold">Play Game</Text>
+            </Pressable>
+          </View>
         )}
 
-        {/* ── Friends ──────────────────────────────────────────────────── */}
-        <View className="px-4 mt-6">
+        {/* ── Trophies Activity ─────────────────────────────── */}
+        <View className="px-5 mt-6 pt-6 border-t border-white/10">
+          <SectionHeader title="Your Trophy Summary" />
+          {trophySummary ? (
+            <View className="bg-zinc-900 rounded-xl p-5 border border-white/5 mt-2">
+              <View className="flex-row items-center justify-between mb-5">
+                <View className="flex-row items-center gap-x-4">
+                  <ProgressRing
+                    progress={trophySummary.progress}
+                    size={48}
+                    color={PS_BLUE}
+                    strokeWidth={4}
+                  >
+                    <Text className="text-white font-bold text-sm">
+                      {trophySummary.trophyLevel}
+                    </Text>
+                  </ProgressRing>
+                  <View>
+                    <Text className="text-white font-semibold mb-0.5">
+                      Level {trophySummary.trophyLevel}
+                    </Text>
+                    <Text className="text-gray-400 text-xs">
+                      {trophySummary.progress}% to next level
+                    </Text>
+                  </View>
+                </View>
+                <TrophyPill
+                  color="#B468F0"
+                  label="PLT"
+                  count={trophySummary.earnedTrophies.platinum}
+                />
+              </View>
+
+              <View className="flex-row gap-x-3">
+                <View className="flex-1 bg-black/40 rounded-lg py-2 items-center">
+                  <Text className="text-gray-400 text-[10px] mb-1">Gold</Text>
+                  <Text className="text-[#E8B420] font-bold text-sm">
+                    {trophySummary.earnedTrophies.gold}
+                  </Text>
+                </View>
+                <View className="flex-1 bg-black/40 rounded-lg py-2 items-center">
+                  <Text className="text-gray-400 text-[10px] mb-1">Silver</Text>
+                  <Text className="text-[#9BA7AF] font-bold text-sm">
+                    {trophySummary.earnedTrophies.silver}
+                  </Text>
+                </View>
+                <View className="flex-1 bg-black/40 rounded-lg py-2 items-center">
+                  <Text className="text-gray-400 text-[10px] mb-1">Bronze</Text>
+                  <Text className="text-[#C47A3A] font-bold text-sm">
+                    {trophySummary.earnedTrophies.bronze}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          ) : (
+            <View className="mt-2">
+              <Skeleton width="100%" height={120} borderRadius={12} />
+            </View>
+          )}
+        </View>
+
+        {/* ── Friends ───────────────────────────────────────── */}
+        <View className="px-5 mt-8">
           <SectionHeader
             title="Friends"
             action="View All"
@@ -236,115 +269,84 @@ export default function DashboardScreen() {
           />
 
           {friendsOnline.isLoading ? (
-            <View className="flex-row gap-x-5">
+            <View className="flex-row gap-x-5 mt-2">
               {[0, 1, 2, 3].map((i) => (
                 <View key={i} className="items-center gap-y-2">
-                  <Skeleton width={52} height={52} borderRadius={26} />
+                  <Skeleton width={48} height={48} borderRadius={24} />
                   <Skeleton width={44} height={8} borderRadius={4} />
                 </View>
               ))}
             </View>
           ) : friendsOnline.allFriends.length === 0 ? (
-            <View className="bg-zinc-900 rounded-2xl px-5 py-4 flex-row items-center gap-x-3">
-              <View className="w-2 h-2 rounded-full bg-zinc-600" />
-              <Text className="text-gray-500 text-sm">No friends found</Text>
+            <View className="mt-2">
+              <Text className="text-gray-500 text-sm">No friends online</Text>
             </View>
           ) : (
-            <View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 20 }}
-              >
-                {friendsOnline.allFriends
-                  .slice(0, 5)
-                  .map((f: FriendPresence) => (
-                    <View key={f.accountId} className="items-center gap-y-2">
-                      <PsnAvatar
-                        uri={f.avatarUrl}
-                        onlineId={f.onlineId}
-                        size={52}
-                        isOnline={f.isOnline}
-                      />
-                      <Text
-                        className="text-gray-400 text-xs"
-                        numberOfLines={1}
-                        style={{ maxWidth: 62 }}
-                      >
-                        {f.onlineId}
-                      </Text>
-                      <Text
-                        className="text-gray-600 text-[9px]"
-                        numberOfLines={1}
-                        style={{ maxWidth: 62 }}
-                      >
-                        {f.isOnline
-                          ? (f.currentlyPlayingTitle ?? "Online")
-                          : formatRelativeDate(f.lastOnlineAt)}
-                      </Text>
-                    </View>
-                  ))}
-              </ScrollView>
-            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 20, paddingTop: 8 }}
+            >
+              {friendsOnline.allFriends.slice(0, 5).map((f: FriendPresence) => (
+                <View key={f.accountId} className="items-center gap-y-2">
+                  <PsnAvatar
+                    uri={f.avatarUrl}
+                    onlineId={f.onlineId}
+                    size={48}
+                    isOnline={f.isOnline}
+                  />
+                  <Text
+                    className="text-gray-300 text-xs"
+                    numberOfLines={1}
+                    style={{ maxWidth: 62, textAlign: "center" }}
+                  >
+                    {f.onlineId}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
           )}
         </View>
 
-        {/* ── Latest PS News ───────────────────────────────────────────── */}
-        <View className="px-4 mt-6">
+        {/* ── Latest PS News ────────────────────────────────── */}
+        <View className="px-5 mt-8 mb-4">
           <SectionHeader
-            title="Latest PS News"
+            title="Official News"
             action="See All"
             onAction={() => router.push("/(tabs)/news")}
           />
 
           {latestNews.isLoading ? (
-            <Skeleton width="100%" height={200} borderRadius={16} />
+            <View className="mt-2">
+              <Skeleton width="100%" height={220} borderRadius={12} />
+            </View>
           ) : latestNews.data ? (
             <Pressable
-              className="rounded-2xl overflow-hidden active:opacity-85"
+              className="mt-2 bg-zinc-900 rounded-xl overflow-hidden border border-white/5 active:opacity-85"
               onPress={() => router.push("/(tabs)/news")}
             >
               {latestNews.data.thumbnailUrl ? (
-                <View style={{ height: 200 }}>
+                <>
                   <Image
                     source={{ uri: latestNews.data.thumbnailUrl }}
-                    style={{ width: "100%", height: "100%" }}
+                    style={{ width: "100%", height: 160 }}
                     contentFit="cover"
                   />
-                  <LinearGradient
-                    colors={["transparent", "rgba(0,0,0,0.85)"]}
-                    locations={[0.3, 1]}
-                    style={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      padding: 16,
-                    }}
-                  >
-                    <View className="flex-row items-center gap-x-2 mb-1.5">
-                      <View
-                        className="px-2 py-0.5 rounded"
-                        style={{ backgroundColor: PS_BLUE }}
-                      >
-                        <Text className="text-white text-[9px] font-bold uppercase tracking-wider">
-                          {latestNews.data.category}
-                        </Text>
-                      </View>
-                      <Text className="text-gray-400 text-[10px]">
-                        {formatRelativeDate(latestNews.data.publishedAt)}
-                      </Text>
-                    </View>
+                  <View className="p-4 bg-zinc-900 border-t border-white/5">
+                    <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-2">
+                      {latestNews.data.category} •{" "}
+                      {formatRelativeDate(latestNews.data.publishedAt)}
+                    </Text>
                     <Text
-                      className="text-white font-bold text-sm leading-5"
+                      className="text-white font-semibold text-sm leading-snug"
                       numberOfLines={2}
                     >
                       {latestNews.data.title}
                     </Text>
-                  </LinearGradient>
-                </View>
+                  </View>
+                </>
               ) : (
-                <View className="bg-zinc-900 rounded-2xl p-5">
+                <View className="p-5">
                   <Text
                     className="text-white font-semibold text-sm"
                     numberOfLines={3}
@@ -355,134 +357,13 @@ export default function DashboardScreen() {
               )}
             </Pressable>
           ) : (
-            <EmptyState label="Could not load news." />
+            <View className="mt-2">
+              <EmptyState label="Could not load news." />
+            </View>
           )}
         </View>
       </ScrollView>
     </View>
-  );
-}
-
-// ─── Hero game card ───────────────────────────────────────────────────────────
-
-function HeroGameCard({
-  game,
-  onPress,
-}: {
-  game: LibraryGame;
-  onPress: () => void;
-}) {
-  const progressWidth = `${game.progress}%` as const;
-  return (
-    <Pressable
-      className="rounded-2xl overflow-hidden active:opacity-85"
-      style={{ height: 180 }}
-      onPress={onPress}
-    >
-      <Image
-        source={{ uri: game.imageUrl }}
-        style={{ width: "100%", height: "100%" }}
-        contentFit="cover"
-      />
-      <LinearGradient
-        colors={["transparent", "rgba(0,0,0,0.92)"]}
-        locations={[0.15, 1]}
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          padding: 14,
-        }}
-      >
-        <View className="flex-row items-end justify-between mb-2">
-          <View className="flex-1 mr-3">
-            <Text
-              className="text-white font-bold text-base leading-5"
-              numberOfLines={1}
-            >
-              {game.name}
-            </Text>
-            <Text className="text-gray-400 text-xs mt-0.5">
-              Last trophy {formatRelativeDate(game.lastTrophyEarnedAt)}
-            </Text>
-          </View>
-          <PlatformBadge platform={game.platform} />
-        </View>
-        {/* Progress bar */}
-        <View className="flex-row items-center gap-x-2">
-          <View
-            className="flex-1 h-1 rounded-full"
-            style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
-          >
-            <View
-              className="h-1 rounded-full"
-              style={{ width: progressWidth, backgroundColor: PS_BLUE }}
-            />
-          </View>
-          <Text className="text-gray-400 text-[10px] font-semibold w-7 text-right">
-            {game.progress}%
-          </Text>
-        </View>
-      </LinearGradient>
-      {/* Play arrow overlay */}
-      <View
-        className="absolute top-3 right-3 w-8 h-8 rounded-full items-center justify-center"
-        style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-      >
-        <Text className="text-white text-sm" style={{ marginLeft: 2 }}>
-          {"▶"}
-        </Text>
-      </View>
-    </Pressable>
-  );
-}
-
-// ─── Small shelf card ─────────────────────────────────────────────────────────
-
-function GameShelfCard({
-  game,
-  onPress,
-}: {
-  game: LibraryGame;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      style={{ width: 90 }}
-      onPress={onPress}
-      className="active:opacity-75"
-    >
-      <View className="rounded-xl overflow-hidden" style={{ height: 90 }}>
-        <Image
-          source={{ uri: game.imageUrl }}
-          style={{ width: "100%", height: "100%" }}
-          contentFit="cover"
-        />
-        <View style={{ position: "absolute", bottom: 4, right: 4 }}>
-          <PlatformBadge platform={game.platform} />
-        </View>
-        {/* Thin progress bar along bottom edge */}
-        {game.progress > 0 && (
-          <View
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              width: `${game.progress}%`,
-              height: 3,
-              backgroundColor: PS_BLUE,
-            }}
-          />
-        )}
-      </View>
-      <Text
-        className="text-gray-400 text-[10px] mt-1.5 text-center"
-        numberOfLines={1}
-      >
-        {game.name}
-      </Text>
-    </Pressable>
   );
 }
 
@@ -498,11 +379,11 @@ function SectionHeader({
   onAction?: () => void;
 }) {
   return (
-    <View className="flex-row items-center justify-between mb-3">
-      <Text className="text-white font-bold text-base">{title}</Text>
+    <View className="flex-row items-center justify-between mb-2">
+      <Text className="text-white font-bold text-lg">{title}</Text>
       {action && onAction && (
         <Pressable onPress={onAction} hitSlop={8}>
-          <Text className="text-xs font-medium" style={{ color: PS_BLUE }}>
+          <Text className="text-sm font-medium" style={{ color: PS_BLUE }}>
             {action}
           </Text>
         </Pressable>
@@ -521,16 +402,13 @@ function TrophyPill({
   count: number;
 }) {
   return (
-    <View
-      className="flex-row items-center gap-x-1 px-2 py-1 rounded-full"
-      style={{ backgroundColor: `${color}22` }}
-    >
+    <View className="flex-row items-center gap-x-1.5">
       <View
-        className="w-1.5 h-1.5 rounded-full"
+        className="w-2 h-2 rounded-full"
         style={{ backgroundColor: color }}
       />
-      <Text className="text-white text-xs font-semibold">{count}</Text>
-      <Text className="text-xs" style={{ color }}>
+      <Text className="text-white font-bold">{count}</Text>
+      <Text className="text-[10px] font-semibold" style={{ color }}>
         {label}
       </Text>
     </View>
@@ -539,7 +417,7 @@ function TrophyPill({
 
 function EmptyState({ label }: { label: string }) {
   return (
-    <View className="bg-zinc-900 rounded-2xl px-5 py-6 items-center">
+    <View className="bg-zinc-900 rounded-xl px-4 py-6 items-center border border-white/5">
       <Text className="text-gray-500 text-sm">{label}</Text>
     </View>
   );
