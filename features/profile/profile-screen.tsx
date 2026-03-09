@@ -1,6 +1,5 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
 import React, { useCallback, useRef, useState } from "react";
 import {
@@ -22,10 +21,10 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ProgressRing } from "@/components/progress-ring";
 import { PsnAvatar } from "@/components/psn-avatar";
 import { Skeleton } from "@/components/skeleton-placeholder";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuth } from "@/context/auth-context";
 import { useUser } from "@/context/user-context";
 
@@ -261,7 +260,12 @@ const cardStyles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  plusText: { color: "#000", fontSize: 9, fontWeight: "900", letterSpacing: 0.5 },
+  plusText: {
+    color: "#000",
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+  },
   levelRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -354,7 +358,6 @@ function TrophyPill({
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { signOut } = useAuth();
   const { profile, trophySummary, isLoadingProfile } = useUser();
@@ -417,20 +420,15 @@ export default function ProfileScreen() {
       <LinearGradient
         colors={[PS_DARK, "#001A3A", "#000000"]}
         locations={[0, 0.6, 1]}
-        style={{ paddingTop: insets.top + 12, paddingBottom: 28, paddingHorizontal: 20 }}
+        style={{
+          paddingTop: insets.top + 12,
+          paddingBottom: 28,
+          paddingHorizontal: 20,
+        }}
       >
-        {/* Top bar — matches game detail back button style */}
-        <View className="flex-row items-center justify-between mb-5">
-          <Pressable
-            onPress={() => router.back()}
-            hitSlop={10}
-            className="active:opacity-60"
-          >
-            <Text className="text-white text-3xl" style={{ lineHeight: 30, marginTop: -4 }}>‹</Text>
-          </Pressable>
+        {/* Top bar */}
+        <View className="flex-row items-center justify-center mb-5">
           <Text className="text-white text-base font-bold">Profile</Text>
-          {/* Share placeholder to keep title centred */}
-          <View style={{ width: 24 }} />
         </View>
 
         {/* Avatar — same PsnAvatar used everywhere, larger size */}
@@ -460,7 +458,10 @@ export default function ProfileScreen() {
             <Skeleton width={140} height={18} borderRadius={8} />
           ) : (
             <View className="flex-row items-center gap-x-2">
-              <Text className="text-white text-2xl font-black" style={{ letterSpacing: -0.4 }}>
+              <Text
+                className="text-white text-2xl font-black"
+                style={{ letterSpacing: -0.4 }}
+              >
                 {profile?.onlineId ?? "—"}
               </Text>
               {profile?.isPsPlus && (
@@ -506,13 +507,30 @@ export default function ProfileScreen() {
 
               <View className="flex-1">
                 <Text className="text-gray-400 text-xs mb-1.5">
-                  Trophy Level · Tier {trophySummary.tier} · {trophySummary.progress}% to next
+                  Trophy Level · Tier {trophySummary.tier} ·{" "}
+                  {trophySummary.progress}% to next
                 </Text>
                 <View className="flex-row gap-x-2">
-                  <TrophyPill color={PILL_COLORS.platinum} label="PLT" count={platinum} />
-                  <TrophyPill color={PILL_COLORS.gold} label="GLD" count={gold} />
-                  <TrophyPill color={PILL_COLORS.silver} label="SLV" count={silver} />
-                  <TrophyPill color={PILL_COLORS.bronze} label="BRZ" count={bronze} />
+                  <TrophyPill
+                    color={PILL_COLORS.platinum}
+                    label="PLT"
+                    count={platinum}
+                  />
+                  <TrophyPill
+                    color={PILL_COLORS.gold}
+                    label="GLD"
+                    count={gold}
+                  />
+                  <TrophyPill
+                    color={PILL_COLORS.silver}
+                    label="SLV"
+                    count={silver}
+                  />
+                  <TrophyPill
+                    color={PILL_COLORS.bronze}
+                    label="BRZ"
+                    count={bronze}
+                  />
                 </View>
               </View>
             </View>
@@ -545,19 +563,21 @@ export default function ProfileScreen() {
             className="bg-zinc-900 rounded-2xl p-4"
           >
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-white font-bold text-base">Trophies Earned</Text>
-              <Text className="text-gray-500 text-sm font-semibold">{totalTrophies} total</Text>
+              <Text className="text-white font-bold text-base">
+                Trophies Earned
+              </Text>
+              <Text className="text-gray-500 text-sm font-semibold">
+                {totalTrophies} total
+              </Text>
             </View>
 
             <View className="flex-row gap-x-2 mb-4">
-              {(
-                [
-                  { grade: "platinum" as const, label: "PLT", count: platinum },
-                  { grade: "gold" as const, label: "GLD", count: gold },
-                  { grade: "silver" as const, label: "SLV", count: silver },
-                  { grade: "bronze" as const, label: "BRZ", count: bronze },
-                ]
-              ).map(({ grade, label, count }) => (
+              {[
+                { grade: "platinum" as const, label: "PLT", count: platinum },
+                { grade: "gold" as const, label: "GLD", count: gold },
+                { grade: "silver" as const, label: "SLV", count: silver },
+                { grade: "bronze" as const, label: "BRZ", count: bronze },
+              ].map(({ grade, label, count }) => (
                 <View
                   key={grade}
                   className="flex-1 items-center py-3 rounded-2xl"
@@ -586,10 +606,16 @@ export default function ProfileScreen() {
               >
                 <View
                   className="h-full rounded-full"
-                  style={{ width: `${trophySummary.progress}%`, backgroundColor: PS_BLUE }}
+                  style={{
+                    width: `${trophySummary.progress}%`,
+                    backgroundColor: PS_BLUE,
+                  }}
                 />
               </View>
-              <Text className="text-gray-400 text-xs font-semibold" style={{ width: 40, textAlign: "right" }}>
+              <Text
+                className="text-gray-400 text-xs font-semibold"
+                style={{ width: 40, textAlign: "right" }}
+              >
                 {trophySummary.progress}%
               </Text>
             </View>
@@ -602,7 +628,10 @@ export default function ProfileScreen() {
             onPress={signOut}
             className="bg-zinc-900 rounded-2xl py-4 flex-row items-center justify-center gap-x-2.5 active:opacity-70"
           >
-            <Text className="text-base" style={{ color: "#FF453A", fontWeight: "600" }}>
+            <Text
+              className="text-base"
+              style={{ color: "#FF453A", fontWeight: "600" }}
+            >
               Sign Out
             </Text>
           </Pressable>
