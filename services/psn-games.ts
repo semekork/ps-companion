@@ -1,6 +1,19 @@
 import type { LibraryGame, PlayedGame } from "@/types/psn";
-import { getRecentlyPlayedGames, getUserTitles } from "psn-api";
+import {
+  getRecentlyPlayedGames,
+  getUserPlayedGames,
+  getUserTitles,
+} from "psn-api";
 import { buildPsnAuth } from "./psn-auth";
+
+/** Parse ISO 8601 duration "PT228H56M33S" → total minutes (numeric) */
+export function parsePlayDurationMinutes(iso: string): number {
+  const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return 0;
+  const h = parseInt(match[1] ?? "0", 10);
+  const m = parseInt(match[2] ?? "0", 10);
+  return h * 60 + m;
+}
 
 /** Parse ISO 8601 duration "PT228H56M33S" → "228h 56m" */
 export function formatPlayDuration(iso: string): string {
@@ -25,7 +38,7 @@ export async function fetchRecentlyPlayed(
 ): Promise<PlayedGame[]> {
   const auth = buildPsnAuth(accessToken);
   const res = await getRecentlyPlayedGames(auth, { limit });
-  return (res.titles ?? []).map((t: any) => ({
+  return ((res as any).titles ?? []).map((t: any) => ({
     titleId: t.titleId ?? "",
     name: t.name ?? t.localizedName ?? "",
     imageUrl: t.imageUrl ?? t.localizedImageUrl ?? "",
@@ -79,4 +92,37 @@ export async function fetchUserLibrary(
     },
     lastTrophyEarnedAt: t.lastUpdatedDateTime ?? "",
   }));
+}
+
+/**
+ * Fetch full play history with durations for ALL games (paginated).
+ * Uses getUserPlayedGames — returns up to 200 per page.
+ */
+export async function fetchFullPlayHistory(
+  accessToken: string,
+  accountId: string,
+): Promise<PlayedGame[]> {
+  const auth = buildPsnAuth(accessToken);
+  const allTitles: PlayedGame[] = [];
+  let offset = 0;
+  const limit = 200;
+
+  while (true) {
+    const res = await getUserPlayedGames(auth, accountId, { limit, offset });
+    const titles = (res.titles ?? []).map((t: any) => ({
+      titleId: t.titleId ?? "",
+      name: t.name ?? t.localizedName ?? "",
+      imageUrl: t.imageUrl ?? t.localizedImageUrl ?? "",
+      platform: normalizeCategory(t.category ?? ""),
+      playCount: t.playCount ?? 0,
+      firstPlayedAt: t.firstPlayedDateTime ?? "",
+      lastPlayedAt: t.lastPlayedDateTime ?? "",
+      playDuration: t.playDuration ?? "PT0S",
+    }));
+    allTitles.push(...titles);
+    if (titles.length < limit) break;
+    offset += limit;
+  }
+
+  return allTitles;
 }

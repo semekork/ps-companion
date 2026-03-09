@@ -1,7 +1,9 @@
 import { Platform } from "react-native";
 
-const tintColorLight = "#00439C"; // PlayStation blue
-const tintColorDark = "#4DA6FF"; // PlayStation blue (dark)
+import { PS_COLORS } from "./colors";
+
+const tintColorLight = PS_COLORS.darkBlue;
+const tintColorDark = PS_COLORS.accentBlue;
 
 export const Colors = {
   light: {
@@ -24,16 +26,16 @@ export const Colors = {
 
 /** PlayStation brand palette */
 export const PsColors = {
-  bluePrimary: { light: "#00439C", dark: "#0070D1" },
-  blueAccent: { light: "#0070D1", dark: "#4DA6FF" },
+  bluePrimary: { light: PS_COLORS.darkBlue, dark: PS_COLORS.blue },
+  blueAccent: { light: PS_COLORS.blue, dark: PS_COLORS.accentBlue },
 };
 
 /** Trophy grade colours */
 export const TrophyColors = {
-  platinum: { light: "#B0C4DE", dark: "#C8D8E8" },
-  gold: { light: "#D4AF37", dark: "#FFD700" },
-  silver: { light: "#A8A9AD", dark: "#C0C0C0" },
-  bronze: { light: "#CD7F32", dark: "#E8956D" },
+  platinum: { light: "#B0C4DE", dark: PS_COLORS.trophy.platinum },
+  gold: { light: "#D4AF37", dark: PS_COLORS.trophy.gold },
+  silver: { light: "#A8A9AD", dark: PS_COLORS.trophy.silver },
+  bronze: { light: "#CD7F32", dark: PS_COLORS.trophy.bronze },
 };
 
 export const Fonts = Platform.select({

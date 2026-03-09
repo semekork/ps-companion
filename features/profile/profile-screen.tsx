@@ -1,5 +1,6 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
 import React, { useCallback, useRef, useState } from "react";
 import {
@@ -21,19 +22,23 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
+import { PlatformBadge } from "@/components/platform-badge";
 import { ProgressRing } from "@/components/progress-ring";
 import { PsnAvatar } from "@/components/psn-avatar";
 import { Skeleton } from "@/components/skeleton-placeholder";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuth } from "@/context/auth-context";
 import { useUser } from "@/context/user-context";
+import type { Milestone } from "@/features/analytics/analytics-types";
+import { useAnalytics } from "@/features/analytics/use-analytics";
+import { useContinuePlaying } from "@/features/dashboard/use-dashboard";
+import type { LibraryGame } from "@/types/psn";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const PS_BLUE = "#0070D1";
 const PS_DARK = "#00439C";
 
-// Match dashboard trophy pill colours exactly
 const PILL_COLORS = {
   platinum: "#B468F0",
   gold: "#E8B420",
@@ -47,6 +52,112 @@ const TROPHY_COLORS = {
   silver: "#A8A9AD",
   bronze: "#CD7F32",
 };
+
+const PLATFORM_COLORS: Record<string, string> = {
+  ps5: "#0070D1",
+  ps4: "#003087",
+  ps3: "#8E44AD",
+  psvita: "#E67E22",
+  unknown: "#555",
+};
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function formatHours(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  if (h >= 1000) return `${(h / 1000).toFixed(1)}k`;
+  return h.toLocaleString();
+}
+
+function formatAvgSession(minutes: number): string {
+  if (minutes < 60) return `${minutes}m`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h}h ${m}m`;
+}
+
+function formatGamingSince(iso: string): string {
+  if (!iso) return "—";
+  const year = new Date(iso).getFullYear();
+  return `Since ${year}`;
+}
+
+// ─── Components ──────────────────────────────────────────────────────────────
+
+function StatBox({
+  value,
+  label,
+  icon,
+}: {
+  value: string;
+  label: string;
+  icon: React.ComponentProps<typeof IconSymbol>["name"];
+}) {
+  return (
+    <View className="flex-1 items-center py-3 bg-zinc-800 rounded-xl">
+      <IconSymbol name={icon} size={16} color={PS_BLUE} />
+      <Text className="text-white font-black text-lg mt-1">{value}</Text>
+      <Text className="text-gray-400 text-[10px] font-semibold">{label}</Text>
+    </View>
+  );
+}
+
+function TrophyStatPill({
+  value,
+  label,
+  color,
+}: {
+  value: number;
+  label: string;
+  color: string;
+}) {
+  return (
+    <View
+      className="flex-1 flex-row items-center justify-center gap-x-2 py-2.5 rounded-xl"
+      style={{ backgroundColor: `${color}15` }}
+    >
+      <Text className="font-bold text-sm" style={{ color }}>
+        {value}
+      </Text>
+      <Text className="text-gray-400 text-[10px] font-semibold">{label}</Text>
+    </View>
+  );
+}
+
+function MilestoneBadge({ milestone }: { milestone: Milestone }) {
+  return (
+    <View
+      className="items-center justify-center py-3 px-2 rounded-xl"
+      style={{
+        width: "31%",
+        backgroundColor: milestone.earned
+          ? "rgba(0,112,209,0.15)"
+          : "rgba(255,255,255,0.04)",
+        opacity: milestone.earned ? 1 : 0.5,
+      }}
+    >
+      <IconSymbol
+        name={milestone.icon as React.ComponentProps<typeof IconSymbol>["name"]}
+        size={20}
+        color={milestone.earned ? PS_BLUE : "#555"}
+      />
+      <Text
+        className="text-[10px] font-bold text-center mt-1.5"
+        style={{ color: milestone.earned ? "#fff" : "#666" }}
+        numberOfLines={1}
+      >
+        {milestone.label}
+      </Text>
+      <Text
+        className="text-[8px] text-center mt-0.5"
+        style={{ color: milestone.earned ? "#999" : "#555" }}
+        numberOfLines={2}
+      >
+        {milestone.description}
+      </Text>
+    </View>
+  );
+}
 
 // ─── Profile Share Card (off-screen capture) ─────────────────────────────────
 
@@ -82,17 +193,12 @@ const ProfileShareCard = React.forwardRef<
   ) => {
     return (
       <View ref={ref} style={cardStyles.card} collapsable={false}>
-        {/* Background gradient */}
         <LinearGradient
           colors={[PS_DARK, "#001A3A", "#000000"]}
           locations={[0, 0.5, 1]}
           style={StyleSheet.absoluteFill}
         />
-
-        {/* Subtle grid overlay */}
         <View style={cardStyles.gridOverlay} />
-
-        {/* PS branding */}
         <View style={cardStyles.brand}>
           <LinearGradient
             colors={[PS_BLUE, PS_DARK]}
@@ -102,8 +208,6 @@ const ProfileShareCard = React.forwardRef<
           </LinearGradient>
           <Text style={cardStyles.brandLabel}>Companion</Text>
         </View>
-
-        {/* Avatar */}
         <View style={cardStyles.avatarWrapper}>
           {avatarUrl ? (
             <Image
@@ -118,13 +222,7 @@ const ProfileShareCard = React.forwardRef<
               </Text>
             </View>
           )}
-          {/* Progress ring around avatar */}
-          <View style={StyleSheet.absoluteFill} pointerEvents="none">
-            {/* SVG-free ring drawn with border */}
-          </View>
         </View>
-
-        {/* Online ID */}
         <View style={cardStyles.nameRow}>
           <Text style={cardStyles.onlineId}>{onlineId}</Text>
           {isPsPlus && (
@@ -133,8 +231,6 @@ const ProfileShareCard = React.forwardRef<
             </View>
           )}
         </View>
-
-        {/* Trophy level */}
         <View style={cardStyles.levelRow}>
           <View style={cardStyles.levelBox}>
             <Text style={cardStyles.levelNumber}>{trophyLevel}</Text>
@@ -153,8 +249,6 @@ const ProfileShareCard = React.forwardRef<
             <Text style={cardStyles.progressPct}>{progress}% to next</Text>
           </View>
         </View>
-
-        {/* Trophy counts */}
         <View style={cardStyles.trophyRow}>
           {(
             [
@@ -183,8 +277,6 @@ const ProfileShareCard = React.forwardRef<
             </View>
           ))}
         </View>
-
-        {/* Tagline */}
         <Text style={cardStyles.tagline}>TRACKED WITH PS COMPANION</Text>
       </View>
     );
@@ -358,9 +450,28 @@ function TrophyPill({
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { signOut } = useAuth();
   const { profile, trophySummary, isLoadingProfile } = useUser();
+  const continuePlaying = useContinuePlaying();
+  const { analytics, isLibraryLoaded, isPlayHistoryLoaded } = useAnalytics();
+
+  const recentGames = continuePlaying.data?.slice(0, 8) ?? [];
+
+  function handleOpenGame(game: LibraryGame) {
+    router.push({
+      pathname: "/game/[titleId]",
+      params: {
+        titleId: game.npCommunicationId,
+        service: game.npServiceName,
+        name: game.name,
+        imageUrl: game.imageUrl,
+        platform: game.platform,
+        progress: String(game.progress),
+      },
+    });
+  }
 
   const shareCardRef = useRef<View>(null);
   const [sharing, setSharing] = useState(false);
@@ -414,6 +525,15 @@ export default function ProfileScreen() {
     handleShare();
   }
 
+  const platPct =
+    analytics.trophyInsights.platinumEligibleCount > 0
+      ? Math.round(
+          (analytics.trophyInsights.platinumCount /
+            analytics.trophyInsights.platinumEligibleCount) *
+            100,
+        )
+      : 0;
+
   return (
     <View className="flex-1 bg-black">
       {/* ── Hero header ──────────────────────────────────────────── */}
@@ -426,12 +546,6 @@ export default function ProfileScreen() {
           paddingHorizontal: 20,
         }}
       >
-        {/* Top bar */}
-        <View className="flex-row items-center justify-center mb-5">
-          <Text className="text-white text-base font-bold">Profile</Text>
-        </View>
-
-        {/* Avatar — same PsnAvatar used everywhere, larger size */}
         <View className="items-center gap-y-3">
           {isLoadingProfile ? (
             <Skeleton width={84} height={84} borderRadius={42} />
@@ -453,7 +567,6 @@ export default function ProfileScreen() {
             </View>
           )}
 
-          {/* Online ID */}
           {isLoadingProfile ? (
             <Skeleton width={140} height={18} borderRadius={8} />
           ) : (
@@ -477,7 +590,6 @@ export default function ProfileScreen() {
             </View>
           )}
 
-          {/* About me */}
           {!!profile?.aboutMe && (
             <Text
               className="text-gray-400 text-sm text-center"
@@ -488,7 +600,6 @@ export default function ProfileScreen() {
             </Text>
           )}
 
-          {/* Trophy level — inline strip matching dashboard header */}
           {trophySummary ? (
             <View className="flex-row items-center gap-x-4 mt-1">
               <ProgressRing
@@ -556,74 +667,490 @@ export default function ProfileScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Trophy breakdown card ─────────────────────────────── */}
-        {trophySummary && (
-          <Animated.View
-            entering={FadeInDown.delay(60).springify().damping(18)}
-            className="bg-zinc-900 rounded-2xl p-4"
-          >
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-white font-bold text-base">
-                Trophies Earned
-              </Text>
-              <Text className="text-gray-500 text-sm font-semibold">
-                {totalTrophies} total
-              </Text>
-            </View>
+        {/* ── Gaming Overview ──────────────────────────────────── */}
+        <Animated.View entering={FadeInDown.delay(60).springify().damping(18)}>
+          <View className="bg-zinc-900 rounded-2xl p-4">
+            <Text className="text-white font-bold text-base mb-3">
+              Gaming Overview
+            </Text>
 
-            <View className="flex-row gap-x-2 mb-4">
-              {[
-                { grade: "platinum" as const, label: "PLT", count: platinum },
-                { grade: "gold" as const, label: "GLD", count: gold },
-                { grade: "silver" as const, label: "SLV", count: silver },
-                { grade: "bronze" as const, label: "BRZ", count: bronze },
-              ].map(({ grade, label, count }) => (
-                <View
-                  key={grade}
-                  className="flex-1 items-center py-3 rounded-2xl"
-                  style={{ backgroundColor: `${PILL_COLORS[grade]}18` }}
+            {!isPlayHistoryLoaded ? (
+              <View className="gap-y-3">
+                <View className="flex-row gap-x-3">
+                  <Skeleton width={100} height={48} borderRadius={10} />
+                  <Skeleton width={100} height={48} borderRadius={10} />
+                  <Skeleton width={100} height={48} borderRadius={10} />
+                </View>
+                <Skeleton width={200} height={14} borderRadius={7} />
+              </View>
+            ) : (
+              <View>
+                <View className="flex-row gap-x-2 mb-3">
+                  <StatBox
+                    value={String(analytics.overview.totalGames)}
+                    label="Games"
+                    icon="gamecontroller.fill"
+                  />
+                  <StatBox
+                    value={`${formatHours(analytics.overview.totalPlayTimeMinutes)}h`}
+                    label="Played"
+                    icon="clock.fill"
+                  />
+                  <StatBox
+                    value={formatAvgSession(
+                      analytics.overview.averageSessionMinutes,
+                    )}
+                    label="Avg Session"
+                    icon="timer"
+                  />
+                </View>
+
+                {analytics.overview.mostPlayedGame && (
+                  <View className="flex-row items-center gap-x-3 bg-zinc-800 rounded-xl p-3">
+                    {analytics.overview.mostPlayedGame.imageUrl ? (
+                      <Image
+                        source={{
+                          uri: analytics.overview.mostPlayedGame.imageUrl,
+                        }}
+                        style={styles.mostPlayedArt}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          styles.mostPlayedArt,
+                          { backgroundColor: "#1C2A3A" },
+                        ]}
+                      />
+                    )}
+                    <View className="flex-1">
+                      <Text className="text-gray-400 text-[10px] font-semibold mb-0.5">
+                        MOST PLAYED
+                      </Text>
+                      <Text
+                        className="text-white font-bold text-sm"
+                        numberOfLines={1}
+                      >
+                        {analytics.overview.mostPlayedGame.name}
+                      </Text>
+                      <Text className="text-gray-400 text-xs">
+                        {formatHours(
+                          analytics.overview.mostPlayedGame.playTimeMinutes,
+                        )}{" "}
+                        hours
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {analytics.overview.gamingSince ? (
+                  <Text className="text-gray-500 text-xs text-center mt-3">
+                    {formatGamingSince(analytics.overview.gamingSince)}
+                  </Text>
+                ) : null}
+              </View>
+            )}
+          </View>
+        </Animated.View>
+
+        {/* ── Trophy Insights ───────────────────────────────────── */}
+        <Animated.View entering={FadeInDown.delay(120).springify().damping(18)}>
+          <View className="bg-zinc-900 rounded-2xl p-4">
+            <Text className="text-white font-bold text-base mb-3">
+              Trophy Insights
+            </Text>
+
+            {!isLibraryLoaded ? (
+              <View className="gap-y-3">
+                <View className="flex-row gap-x-3">
+                  <Skeleton width={100} height={56} borderRadius={10} />
+                  <Skeleton width={100} height={56} borderRadius={10} />
+                </View>
+              </View>
+            ) : (
+              <View>
+                <View className="flex-row gap-x-2 mb-3">
+                  <View className="flex-1 items-center py-3 bg-zinc-800 rounded-xl">
+                    <Text className="text-white font-black text-xl">
+                      {analytics.trophyInsights.averageCompletion}%
+                    </Text>
+                    <Text className="text-gray-400 text-[10px] font-semibold">
+                      Avg Completion
+                    </Text>
+                  </View>
+                  <View className="flex-1 items-center py-3 bg-zinc-800 rounded-xl">
+                    <View className="flex-row items-center gap-x-1">
+                      <View
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: PILL_COLORS.platinum }}
+                      />
+                      <Text className="text-white font-black text-xl">
+                        {analytics.trophyInsights.platinumCount}
+                      </Text>
+                    </View>
+                    <Text className="text-gray-400 text-[10px] font-semibold">
+                      Platinums ({platPct}%)
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="flex-row gap-x-2 mb-4">
+                  <TrophyStatPill
+                    value={analytics.trophyInsights.completionistCount}
+                    label="100% Complete"
+                    color={PILL_COLORS.gold}
+                  />
+                  <TrophyStatPill
+                    value={analytics.trophyInsights.abandonedCount}
+                    label="Abandoned"
+                    color="#FF453A"
+                  />
+                </View>
+
+                {/* Combined Grade Breakdown from old Profile Screen */}
+                <View className="flex-row gap-x-2">
+                  {[
+                    {
+                      grade: "platinum" as const,
+                      label: "PLT",
+                      count: platinum,
+                    },
+                    { grade: "gold" as const, label: "GLD", count: gold },
+                    { grade: "silver" as const, label: "SLV", count: silver },
+                    { grade: "bronze" as const, label: "BRZ", count: bronze },
+                  ].map(({ grade, label, count }) => (
+                    <View
+                      key={grade}
+                      className="flex-1 items-center py-2 rounded-xl"
+                      style={{ backgroundColor: `${PILL_COLORS[grade]}10` }}
+                    >
+                      <Text className="text-white font-black text-sm">
+                        {count}
+                      </Text>
+                      <Text
+                        className="text-[8px] font-bold"
+                        style={{ color: PILL_COLORS[grade] }}
+                      >
+                        {label}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+        </Animated.View>
+
+        {/* ── Recently Played ──────────────────────────────────── */}
+        <Animated.View entering={FadeInDown.delay(180).springify().damping(18)}>
+          <Text className="text-white font-bold text-base mb-3">
+            Recently Played
+          </Text>
+          {continuePlaying.isLoading ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 10 }}
+            >
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} width={110} height={140} borderRadius={12} />
+              ))}
+            </ScrollView>
+          ) : recentGames.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 10 }}
+            >
+              {recentGames.map((game) => (
+                <Pressable
+                  key={game.npCommunicationId}
+                  onPress={() => handleOpenGame(game)}
+                  className="active:opacity-75"
+                  style={{ width: 110 }}
                 >
                   <View
-                    className="w-2 h-2 rounded-full mb-1.5"
-                    style={{ backgroundColor: PILL_COLORS[grade] }}
-                  />
-                  <Text className="text-white font-black text-xl">{count}</Text>
-                  <Text
-                    className="text-[9px] font-bold mt-0.5"
-                    style={{ color: PILL_COLORS[grade] }}
+                    className="rounded-xl overflow-hidden mb-2"
+                    style={{ height: 110 }}
                   >
-                    {label}
+                    {game.imageUrl ? (
+                      <Image
+                        source={{ uri: game.imageUrl }}
+                        style={{ width: "100%", height: "100%" }}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View
+                        className="flex-1 items-center justify-center"
+                        style={{ backgroundColor: "#1C2A3A" }}
+                      >
+                        <Text className="text-white text-2xl font-black">
+                          {game.name.charAt(0)}
+                        </Text>
+                      </View>
+                    )}
+                    <View
+                      style={{
+                        position: "absolute",
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: 3,
+                        backgroundColor: "rgba(0,0,0,0.4)",
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: `${game.progress}%`,
+                          height: "100%",
+                          backgroundColor: PS_BLUE,
+                        }}
+                      />
+                    </View>
+                  </View>
+                  <Text
+                    className="text-white text-xs font-semibold mb-1"
+                    numberOfLines={2}
+                    style={{ lineHeight: 14 }}
+                  >
+                    {game.name}
                   </Text>
-                </View>
+                  <View className="flex-row items-center gap-x-1">
+                    <PlatformBadge platform={game.platform} />
+                    <Text className="text-gray-500 text-[10px]">
+                      {game.progress}%
+                    </Text>
+                  </View>
+                </Pressable>
               ))}
+            </ScrollView>
+          ) : null}
+        </Animated.View>
+
+        {/* ── Almost There (Incentive) ─────────────────────────── */}
+        {isLibraryLoaded &&
+          analytics.trophyInsights.almostPlatinum.length > 0 && (
+            <Animated.View
+              entering={FadeInDown.delay(240).springify().damping(18)}
+            >
+              <View className="bg-zinc-900 rounded-2xl p-4">
+                <Text className="text-white font-bold text-base mb-3">
+                  Almost There
+                </Text>
+                <View className="gap-y-2">
+                  {analytics.trophyInsights.almostPlatinum.map((game) => {
+                    const totalDefined =
+                      game.definedTrophies.bronze +
+                      game.definedTrophies.silver +
+                      game.definedTrophies.gold +
+                      game.definedTrophies.platinum;
+                    const totalEarned =
+                      game.earnedTrophies.bronze +
+                      game.earnedTrophies.silver +
+                      game.earnedTrophies.gold +
+                      game.earnedTrophies.platinum;
+                    const remaining = totalDefined - totalEarned;
+
+                    return (
+                      <View
+                        key={game.npCommunicationId}
+                        className="flex-row items-center gap-x-3 bg-zinc-800 rounded-xl p-3"
+                      >
+                        {game.imageUrl ? (
+                          <Image
+                            source={{ uri: game.imageUrl }}
+                            style={styles.almostThereArt}
+                            contentFit="cover"
+                          />
+                        ) : (
+                          <View
+                            style={[
+                              styles.almostThereArt,
+                              { backgroundColor: "#1C2A3A" },
+                            ]}
+                          />
+                        )}
+                        <View className="flex-1">
+                          <Text
+                            className="text-white font-semibold text-sm"
+                            numberOfLines={1}
+                          >
+                            {game.name}
+                          </Text>
+                          <Text className="text-gray-400 text-xs">
+                            {remaining}{" "}
+                            {remaining === 1 ? "trophy" : "trophies"} to go
+                          </Text>
+                        </View>
+                        <View className="items-end">
+                          <Text
+                            className="font-black text-sm"
+                            style={{ color: PS_BLUE }}
+                          >
+                            {game.progress}%
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            </Animated.View>
+          )}
+
+        {/* ── Platform Breakdown ────────────────────────────────── */}
+        <Animated.View entering={FadeInDown.delay(300).springify().damping(18)}>
+          <View className="bg-zinc-900 rounded-2xl p-4">
+            <Text className="text-white font-bold text-base mb-3">
+              Platform Breakdown
+            </Text>
+
+            {!isLibraryLoaded ? (
+              <Skeleton width={280} height={60} borderRadius={10} />
+            ) : (
+              <View className="gap-y-3">
+                {analytics.platformBreakdown.map((stat) => {
+                  const maxCount = Math.max(
+                    ...analytics.platformBreakdown.map((p) => p.gameCount),
+                  );
+                  const barWidth =
+                    maxCount > 0
+                      ? Math.max((stat.gameCount / maxCount) * 100, 8)
+                      : 0;
+                  const color =
+                    PLATFORM_COLORS[stat.platform] ?? PLATFORM_COLORS.unknown;
+
+                  return (
+                    <View key={stat.platform} className="gap-y-1">
+                      <View className="flex-row items-center justify-between">
+                        <PlatformBadge platform={stat.platform} />
+                        <Text className="text-gray-400 text-xs">
+                          {stat.gameCount}{" "}
+                          {stat.gameCount === 1 ? "game" : "games"}
+                          {stat.playTimeMinutes > 0
+                            ? ` · ${formatHours(stat.playTimeMinutes)}h`
+                            : ""}
+                        </Text>
+                      </View>
+                      <View
+                        className="h-2 rounded-full overflow-hidden"
+                        style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
+                      >
+                        <View
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${barWidth}%`,
+                            backgroundColor: color,
+                          }}
+                        />
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        </Animated.View>
+
+        {/* ── Top Played Games ──────────────────────────────────── */}
+        <Animated.View entering={FadeInDown.delay(330).springify().damping(18)}>
+          <View className="bg-zinc-900 rounded-2xl p-4">
+            <Text className="text-white font-bold text-base mb-3">
+              Top Played (All Time)
+            </Text>
+
+            {!isPlayHistoryLoaded ? (
+              <View className="gap-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} width={280} height={48} borderRadius={10} />
+                ))}
+              </View>
+            ) : analytics.topPlayed.length === 0 ? (
+              <Text className="text-gray-500 text-center py-4">
+                No data available
+              </Text>
+            ) : (
+              <View className="gap-y-2">
+                {analytics.topPlayed.map((game: any, index: number) => (
+                  <View
+                    key={`${game.name}-${index}`}
+                    className="flex-row items-center gap-x-3 bg-zinc-800 rounded-xl p-3"
+                  >
+                    <Text
+                      className="font-black text-lg w-6 text-center"
+                      style={{ color: index === 0 ? PILL_COLORS.gold : "#666" }}
+                    >
+                      {index + 1}
+                    </Text>
+                    {game.imageUrl ? (
+                      <Image
+                        source={{ uri: game.imageUrl }}
+                        style={styles.topPlayedArt}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          styles.topPlayedArt,
+                          { backgroundColor: "#1C2A3A" },
+                        ]}
+                      />
+                    )}
+                    <View className="flex-1">
+                      <Text
+                        className="text-white font-semibold text-sm"
+                        numberOfLines={1}
+                      >
+                        {game.name}
+                      </Text>
+                      <View className="flex-row items-center gap-x-1.5 mt-0.5">
+                        <PlatformBadge platform={game.platform} />
+                      </View>
+                    </View>
+                    <Text className="text-gray-400 text-xs font-semibold">
+                      {formatHours(game.playTimeMinutes)}h
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        </Animated.View>
+
+        {/* ── Milestones ────────────────────────────────────────── */}
+        <Animated.View entering={FadeInDown.delay(360).springify().damping(18)}>
+          <View className="bg-zinc-900 rounded-2xl p-4">
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-white font-bold text-base">Milestones</Text>
+              {isLibraryLoaded && (
+                <Text className="text-gray-500 text-xs font-semibold">
+                  {analytics.milestones.filter((m) => m.earned).length}/
+                  {analytics.milestones.length} earned
+                </Text>
+              )}
             </View>
 
-            {/* Level progress bar */}
-            <View className="flex-row items-center gap-x-3">
-              <View
-                className="flex-1 h-1.5 rounded-full overflow-hidden"
-                style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
-              >
-                <View
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${trophySummary.progress}%`,
-                    backgroundColor: PS_BLUE,
-                  }}
-                />
+            {!isLibraryLoaded ? (
+              <View className="flex-row flex-wrap gap-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} width={100} height={80} borderRadius={12} />
+                ))}
               </View>
-              <Text
-                className="text-gray-400 text-xs font-semibold"
-                style={{ width: 40, textAlign: "right" }}
-              >
-                {trophySummary.progress}%
-              </Text>
-            </View>
-          </Animated.View>
-        )}
+            ) : (
+              <View className="flex-row flex-wrap gap-2">
+                {analytics.milestones.map((milestone) => (
+                  <MilestoneBadge key={milestone.id} milestone={milestone} />
+                ))}
+              </View>
+            )}
+          </View>
+        </Animated.View>
 
         {/* ── Sign out ──────────────────────────────────────────── */}
-        <Animated.View entering={FadeInDown.delay(140).springify().damping(18)}>
+        <Animated.View
+          entering={FadeInDown.delay(420).springify().damping(18)}
+          className="mt-6"
+        >
           <Pressable
             onPress={signOut}
             className="bg-zinc-900 rounded-2xl py-4 flex-row items-center justify-center gap-x-2.5 active:opacity-70"
@@ -676,23 +1203,24 @@ export default function ProfileScreen() {
   );
 }
 
-// ─── Styles (only for things className can't do) ──────────────────────────────
+// ─── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   fab: {
     position: "absolute",
-    right: 20,
+    right: 16,
+    zIndex: 10,
   },
   fabInner: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: PS_BLUE,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: PS_BLUE,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
   },
@@ -701,5 +1229,20 @@ const styles = StyleSheet.create({
     top: -1000,
     left: 0,
     opacity: 0,
+  },
+  mostPlayedArt: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+  },
+  almostThereArt: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+  },
+  topPlayedArt: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
   },
 });

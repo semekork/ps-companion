@@ -40,6 +40,14 @@ const MAPPING = {
   "arrow.clockwise": "refresh",
   "exclamationmark.triangle.fill": "warning",
   "square.and.arrow.up": "share",
+  "chevron.left": "chevron-left",
+  "flame.fill": "local-fire-department",
+  "checkmark.seal.fill": "verified",
+  "shield.fill": "shield",
+  "square.grid.2x2.fill": "grid-view",
+  timer: "timer",
+  "chart.bar.fill": "bar-chart",
+  "lock.open.fill": "lock-open",
 } as IconMapping;
 
 /**

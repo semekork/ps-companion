@@ -1,3 +1,4 @@
+import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
 import React, {
   createContext,
@@ -16,6 +17,7 @@ const KEY_ACCESS_TOKEN = "ps_access_token";
 const KEY_REFRESH_TOKEN = "ps_refresh_token";
 const KEY_ACCOUNT_ID = "ps_account_id";
 const KEY_EXPIRES_AT = "ps_expires_at";
+const KEY_BIOMETRIC_ENABLED = "ps_biometric_enabled";
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -26,6 +28,8 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  biometricEnabled: boolean;
+  isUnlocked: boolean;
 }
 
 type AuthAction =
@@ -36,7 +40,9 @@ type AuthAction =
   | {
       type: "REFRESH";
       payload: { accessToken: string; accessTokenExpiresAt: string };
-    };
+    }
+  | { type: "SET_BIOMETRIC_ENABLED"; payload: boolean }
+  | { type: "SET_UNLOCKED"; payload: boolean };
 
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
@@ -44,6 +50,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
       return { ...state, isLoading: true, error: null };
     case "SIGN_IN":
       return {
+        ...state,
         accessToken: action.payload.accessToken,
         refreshToken: action.payload.refreshToken,
         accountId: action.payload.accountId,
@@ -53,6 +60,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
       };
     case "SIGN_OUT":
       return {
+        ...state,
         accessToken: null,
         refreshToken: null,
         accountId: null,
@@ -64,6 +72,10 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
       return { ...state, isLoading: false, error: action.payload };
     case "REFRESH":
       return { ...state, accessToken: action.payload.accessToken, error: null };
+    case "SET_BIOMETRIC_ENABLED":
+      return { ...state, biometricEnabled: action.payload };
+    case "SET_UNLOCKED":
+      return { ...state, isUnlocked: action.payload };
     default:
       return state;
   }
@@ -76,6 +88,8 @@ const initialState: AuthState = {
   isAuthenticated: false,
   isLoading: true,
   error: null,
+  biometricEnabled: false,
+  isUnlocked: false,
 };
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -84,6 +98,8 @@ interface AuthContextValue extends AuthState {
   /** Pass the Sony OAuth auth code obtained from NpssoWebAuth.authenticate(). */
   signIn: (authCode: string) => Promise<void>;
   signOut: () => Promise<void>;
+  toggleBiometric: (enabled: boolean) => Promise<void>;
+  authenticateBiometric: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -183,8 +199,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Refresh token also expired or missing — force re-auth
         await clearTokens();
         dispatch({ type: "SIGN_OUT" });
+      } finally {
+        // Load biometric preference
+        const biometricPref = await SecureStore.getItemAsync(
+          KEY_BIOMETRIC_ENABLED,
+        );
+        const isEnabled = biometricPref === "true";
+        dispatch({ type: "SET_BIOMETRIC_ENABLED", payload: isEnabled });
+
+        // If biometric is enabled, we start as locked.
+        // Otherwise, we are "unlocked" by default.
+        dispatch({ type: "SET_UNLOCKED", payload: !isEnabled });
       }
     })();
+  }, []);
+
+  const authenticateBiometric = useCallback(async () => {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+      if (!hasHardware || !isEnrolled) {
+        // If they enabled it but somehow lost hardware/enrollment,
+        // we might want to bypass or force a reset, but for now just return true if disabled.
+        if (!state.biometricEnabled) return true;
+        // If it's enabled but no hardware, this is a weird state.
+        return false;
+      }
+
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: "Unlock PS Companion",
+        fallbackLabel: "Use Passcode",
+      });
+
+      if (result.success) {
+        dispatch({ type: "SET_UNLOCKED", payload: true });
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, [state.biometricEnabled]);
+
+  const toggleBiometric = useCallback(async (enabled: boolean) => {
+    await SecureStore.setItemAsync(
+      KEY_BIOMETRIC_ENABLED,
+      enabled ? "true" : "false",
+    );
+    dispatch({ type: "SET_BIOMETRIC_ENABLED", payload: enabled });
   }, []);
 
   const signIn = useCallback(async (authCode: string) => {
@@ -215,7 +278,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{
+        ...state,
+        signIn,
+        signOut,
+        toggleBiometric,
+        authenticateBiometric,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

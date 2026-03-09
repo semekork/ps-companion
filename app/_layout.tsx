@@ -8,7 +8,7 @@ import {
   PersistQueryClientProvider,
   Persister,
 } from "@tanstack/react-query-persist-client";
-import { Redirect, Stack } from "expo-router";
+import { Redirect, Stack, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { StyleSheet } from "react-native";
@@ -20,6 +20,7 @@ import Animated, {
 } from "react-native-reanimated";
 import "../global.css";
 
+import { LockScreen } from "@/components/lock-screen";
 import { PsSplash } from "@/components/ps-splash";
 import { AuthProvider, useAuth } from "@/context/auth-context";
 import { UserProvider } from "@/context/user-context";
@@ -40,8 +41,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// In-memory persister — no native module required.
-// Cache lives for the session; data refetches on a fresh app launch.
 const _cache = new Map<string, string>();
 const CACHE_KEY = "PS_APP_QUERY_CACHE";
 
@@ -75,7 +74,9 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const colorScheme = useColorScheme();
-  const { isAuthenticated, isLoading } = useAuth();
+  const segments = useSegments();
+  const { isAuthenticated, isLoading, biometricEnabled, isUnlocked } =
+    useAuth();
   const splashOpacity = useSharedValue(1);
 
   useEffect(() => {
@@ -128,6 +129,14 @@ function RootNavigator() {
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}
         />
+        <Stack.Screen
+          name="analytics"
+          options={{
+            headerShown: false,
+            animation: "slide_from_right",
+            gestureDirection: "horizontal",
+          }}
+        />
       </Stack>
 
       {/* Redirect based on auth state */}
@@ -140,6 +149,14 @@ function RootNavigator() {
       >
         <PsSplash />
       </Animated.View>
+
+      {/* Lock Screen — shown if biometric enabled but not unlocked */}
+      {!isLoading &&
+        isAuthenticated &&
+        biometricEnabled &&
+        !isUnlocked &&
+        segments[0] !== "welcome" &&
+        segments[0] !== "auth" && <LockScreen />}
 
       <StatusBar style="auto" />
     </ThemeProvider>

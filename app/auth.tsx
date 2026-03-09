@@ -1,13 +1,8 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { NpssoLoginModal } from "@/components/npsso-login-modal";
-import {
-  NpssoWebAuth,
-  type NpssoWebAuthRef,
-} from "@/components/npsso-web-auth";
 import {
   ActivityIndicator,
   Image,
@@ -16,11 +11,17 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
 } from "react-native";
 
+import {
+  NpssoWebAuth,
+  type NpssoWebAuthRef,
+} from "@/components/npsso-web-auth";
+import { getPsnAuthorizeUrl, PSN_REDIRECT_URI } from "@/constants/psn";
 import { useAuth } from "@/context/auth-context";
 
 const PS_BLUE = "#0070D1";
@@ -30,25 +31,58 @@ const NPSSO_URL = "https://ca.account.sony.com/api/v1/ssocookie";
 const PSN_LOGIN_URL = "https://www.playstation.com";
 
 export default function AuthScreen() {
-  const { signIn, isLoading, error } = useAuth();
+  const {
+    signIn,
+    isLoading,
+    error,
+    biometricEnabled,
+    isUnlocked,
+    authenticateBiometric,
+    isAuthenticated,
+    toggleBiometric,
+  } = useAuth();
   const router = useRouter();
   const [npsso, setNpsso] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isWebAuthing, setIsWebAuthing] = useState(false);
   const [showNpssoInput, setShowNpssoInput] = useState(false);
-  const [showWebView, setShowWebView] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && isUnlocked) {
+      router.replace("/(tabs)");
+    }
+  }, [isAuthenticated, isUnlocked]);
 
   async function handleAutoSignIn() {
     if (busy) return;
     setValidationError(null);
-    setShowWebView(true);
-  }
 
-  const handleWebViewSuccess = (token: string) => {
-    setShowWebView(false);
-    setNpsso(token);
-    handleSignIn(token);
-  };
+    try {
+      setIsWebAuthing(true);
+      const authUrl = getPsnAuthorizeUrl();
+      const result = await WebBrowser.openAuthSessionAsync(
+        authUrl,
+        PSN_REDIRECT_URI,
+      );
+
+      if (result.type === "success") {
+        const url = result.url;
+        const code = url.match(/[?&]code=([^&]+)/)?.[1];
+        if (code) {
+          await signIn(decodeURIComponent(code));
+          router.replace("/(tabs)");
+        } else {
+          throw new Error("Auth code missing from Sony redirect.");
+        }
+      }
+    } catch (err) {
+      setValidationError(
+        err instanceof Error ? err.message : "Authentication failed.",
+      );
+    } finally {
+      setIsWebAuthing(false);
+    }
+  }
 
   const webAuthRef = useRef<NpssoWebAuthRef>(null);
 
@@ -93,7 +127,6 @@ export default function AuthScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.root}
     >
-      {/* Same gradient as welcome screen */}
       <LinearGradient
         colors={[PS_DARKER, "#000918", "#000000"]}
         locations={[0, 0.55, 1]}
@@ -109,51 +142,69 @@ export default function AuthScreen() {
       >
         {/* ── Header ── */}
         <View style={styles.header}>
-          <LinearGradient
-            colors={[PS_BLUE, PS_DARK]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.logoBox}
-          >
-            <Image
-              source={require("../assets/images/ps-logo.png")}
-              style={styles.logo}
-            />
-          </LinearGradient>
-          <Text style={styles.title}>Sign In</Text>
+          <Image
+            source={require("../assets/images/ps-logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>
-            Connect to your PlayStation Network account
+            Connect your account to sync your PlayStation activity
           </Text>
         </View>
 
+        {biometricEnabled && !isUnlocked && (
+          <View style={styles.section}>
+            <Pressable
+              onPress={() => authenticateBiometric()}
+              disabled={busy}
+              style={({ pressed }) => [
+                styles.primaryBtnWrapper,
+                busy && { opacity: 0.5 },
+                pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+              ]}
+            >
+              <LinearGradient
+                colors={[PS_BLUE, PS_DARK]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.primaryBtnGradient}
+              >
+                <Text style={styles.primaryBtnText}>Sign In with FaceID</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
+        )}
+
         {/* ── OAuth Sign In (new users) ── */}
-        <View style={styles.oauthSection}>
+        {/* ── OAuth Sign In ── */}
+        <View style={styles.section}>
           <Pressable
             onPress={handleAutoSignIn}
             disabled={busy}
             style={({ pressed }) => [
-              styles.oauthBtn,
+              styles.primaryBtnWrapper,
               busy && { opacity: 0.5 },
-              pressed && { opacity: 0.88 },
+              pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
             ]}
           >
             <LinearGradient
               colors={[PS_BLUE, PS_DARK]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={styles.oauthBtnGradient}
+              style={styles.primaryBtnGradient}
             >
               {busy && !isWebAuthing ? (
                 <ActivityIndicator color="#ffffff" />
               ) : (
-                <Text style={styles.oauthBtnText}>
+                <Text style={styles.primaryBtnText}>
                   Sign In with PlayStation
                 </Text>
               )}
             </LinearGradient>
           </Pressable>
-          <Text style={styles.oauthDescription}>
-            Safe, secure, one-time login to your PSN account
+          <Text style={styles.helperText}>
+            Safe, secure, one-time login via PlayStation Network
           </Text>
         </View>
 
@@ -172,21 +223,19 @@ export default function AuthScreen() {
           </View>
         ) : null}
 
-        {/* ── NPSSO Input (fallback/advanced) ── */}
+        {/* ── NPSSO Input ── */}
         {showNpssoInput && (
           <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>NPSSO Token (Advanced)</Text>
+            <Text style={styles.label}>NPSSO Token (Advanced)</Text>
             <TextInput
               style={styles.input}
-              placeholder="Paste your 64-character NPSSO token"
-              placeholderTextColor="rgba(255,255,255,0.25)"
+              placeholder="Paste your 64-character token"
+              placeholderTextColor="rgba(255,255,255,0.2)"
               value={npsso}
               onChangeText={setNpsso}
               autoCapitalize="none"
               autoCorrect={false}
               autoComplete="off"
-              secureTextEntry={false}
-              multiline={false}
               returnKeyType="done"
               onSubmitEditing={handleSignIn}
             />
@@ -195,42 +244,51 @@ export default function AuthScreen() {
               onPress={handleSignIn}
               disabled={busy || !npsso.trim()}
               style={({ pressed }) => [
-                styles.signInBtn,
+                styles.primaryBtnWrapper,
                 (busy || !npsso.trim()) && { opacity: 0.4 },
-                pressed && { opacity: 0.88, transform: [{ scale: 0.978 }] },
+                pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
               ]}
             >
               <LinearGradient
                 colors={[PS_BLUE, PS_DARK]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.signInBtnGradient}
+                style={styles.primaryBtnGradient}
               >
                 {busy ? (
                   <ActivityIndicator color="#ffffff" />
                 ) : (
-                  <Text style={styles.signInBtnText}>Sign In with Token</Text>
+                  <Text style={styles.primaryBtnText}>Authenticate Token</Text>
                 )}
               </LinearGradient>
             </Pressable>
           </View>
         )}
 
-        {/* ── Show NPSSO Instructions Card ── */}
+        {/* ── Biometric Preference ── */}
+        <View style={styles.toggleRow}>
+          <Text style={styles.toggleLabel}>Lock app with biometrics</Text>
+          <Switch
+            value={biometricEnabled}
+            onValueChange={toggleBiometric}
+            trackColor={{ false: "#333", true: PS_BLUE }}
+            thumbColor="#fff"
+            ios_backgroundColor="#333"
+          />
+        </View>
+
         {!showNpssoInput && (
-          <View style={styles.instructionsWrapper}>
-            <Pressable
-              onPress={() => setShowNpssoInput(true)}
-              style={({ pressed }) => [pressed && { opacity: 0.7 }]}
-            >
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>Need help?</Text>
-                <Text style={styles.cardSubtext}>
-                  Tap to use NPSSO token (advanced method)
-                </Text>
-              </View>
-            </Pressable>
-          </View>
+          <Pressable
+            onPress={() => setShowNpssoInput(true)}
+            className="mx-5 mb-5 active:opacity-70"
+          >
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Need help signing in?</Text>
+              <Text style={styles.cardSubtext}>
+                Use the NPSSO method for manual authentication.
+              </Text>
+            </View>
+          </Pressable>
         )}
 
         {/* ── Instructions when showing NPSSO ── */}
@@ -284,15 +342,8 @@ export default function AuthScreen() {
         </View>
       </ScrollView>
 
-      {/* Hidden WebView handles NPSSO → auth-code exchange */}
+      {/* Hidden WebView handles NPSSO → auth-code exchange for advanced method */}
       <NpssoWebAuth ref={webAuthRef} />
-
-      {/* Visible WebView handles User Login → NPSSO extraction */}
-      <NpssoLoginModal
-        visible={showWebView}
-        onClose={() => setShowWebView(false)}
-        onSuccess={handleWebViewSuccess}
-      />
     </KeyboardAvoidingView>
   );
 }
@@ -343,21 +394,15 @@ const styles = StyleSheet.create({
 
   header: {
     alignItems: "center",
-    paddingTop: 72,
-    paddingBottom: 32,
+    paddingTop: 80,
+    paddingBottom: 40,
     paddingHorizontal: 24,
-  },
-  logoBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
   },
   logo: {
     width: 44,
     height: 44,
+    marginBottom: 20,
+    tintColor: "#fff",
   },
   title: {
     color: "#fff",
@@ -365,113 +410,101 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: -0.8,
     marginBottom: 8,
+    textAlign: "center",
   },
   subtitle: {
-    color: "rgba(255,255,255,0.45)",
+    color: "rgba(255, 255, 255, 0.45)",
     fontSize: 15,
     textAlign: "center",
     lineHeight: 22,
+    maxWidth: "85%",
   },
 
-  biometricSection: {
-    marginHorizontal: 20,
+  section: {
+    paddingHorizontal: 24,
     marginBottom: 16,
-    gap: 8,
+    gap: 12,
   },
-  biometricBtn: {
-    borderRadius: 16,
+
+  primaryBtnWrapper: {
+    borderRadius: 8,
     overflow: "hidden",
   },
-  biometricBtnGradient: {
-    height: 56,
+  primaryBtnGradient: {
+    height: 52,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 16,
-    flexDirection: "row",
-    gap: 12,
-    borderWidth: 1,
-    borderColor: "rgba(77, 166, 255, 0.3)",
+    borderRadius: 8,
   },
-  biometricBtnEmoji: { fontSize: 20 },
-  biometricBtnText: {
-    color: PS_BLUE,
-    fontSize: 15,
+  primaryBtnText: {
+    color: "#fff",
+    fontSize: 16,
     fontWeight: "600",
   },
 
-  oauthSection: {
-    marginHorizontal: 20,
-    marginBottom: 16,
-    gap: 8,
-  },
-  oauthBtn: {
-    borderRadius: 16,
-    overflow: "hidden",
-  },
-  oauthBtnGradient: {
-    height: 56,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 16,
-  },
-  oauthBtnText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "700",
-    letterSpacing: 0.2,
-  },
-  oauthDescription: {
-    color: "rgba(255,255,255,0.35)",
+  helperText: {
+    color: "rgba(255, 255, 255, 0.35)",
     fontSize: 12,
     textAlign: "center",
   },
 
   divider: {
-    marginHorizontal: 20,
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    marginVertical: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    marginHorizontal: 24,
+    marginVertical: 24,
   },
 
-  instructionsWrapper: {
-    marginHorizontal: 20,
-    marginBottom: 20,
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    marginHorizontal: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.08)",
+    marginBottom: 24,
+  },
+  toggleLabel: {
+    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 14,
+    fontWeight: "600",
   },
 
   card: {
-    marginHorizontal: 20,
-    marginBottom: 20,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(255, 255, 255, 0.08)",
     padding: 20,
-    gap: 14,
+    gap: 8,
   },
   cardTitle: {
     color: "#fff",
     fontWeight: "700",
     fontSize: 15,
-    marginBottom: 4,
   },
   cardSubtext: {
-    color: "rgba(255,255,255,0.5)",
+    color: "rgba(255, 255, 255, 0.5)",
     fontSize: 13,
   },
 
   stepRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
     gap: 12,
+    marginTop: 8,
   },
   stepBadge: {
     width: 24,
     height: 24,
     borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     alignItems: "center",
     justifyContent: "center",
-    flexShrink: 0,
-    marginTop: 1,
+    marginTop: 2,
   },
   stepNum: { color: "#fff", fontSize: 11, fontWeight: "800" },
   stepText: {
@@ -482,7 +515,7 @@ const styles = StyleSheet.create({
   },
   link: {
     color: "#4DA6FF",
-    textDecorationLine: "underline",
+    fontWeight: "500",
   },
   mono: {
     color: "#fff",
@@ -494,24 +527,24 @@ const styles = StyleSheet.create({
   },
 
   inputSection: {
-    marginHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 24,
+    marginBottom: 24,
     gap: 12,
   },
-  inputLabel: {
-    color: "rgba(255,255,255,0.4)",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
+  label: {
+    color: "#888",
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: -4,
   },
   input: {
     backgroundColor: "rgba(255,255,255,0.07)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
     color: "#fff",
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 12,
     fontSize: 14,
     fontFamily: Platform.select({
       ios: "Courier New",
@@ -522,37 +555,24 @@ const styles = StyleSheet.create({
 
   errorBox: {
     backgroundColor: "rgba(255,59,48,0.15)",
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: "rgba(255,59,48,0.3)",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    marginHorizontal: 24,
+    padding: 12,
+    marginBottom: 16,
   },
-  errorText: { color: "#FF453A", fontSize: 13, lineHeight: 18 },
-
-  signInBtn: { borderRadius: 16, overflow: "hidden" },
-  signInBtnGradient: {
-    height: 56,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 16,
-  },
-  signInBtnText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "700",
-    letterSpacing: 0.2,
-  },
+  errorText: { color: "#FF453A", fontSize: 13 },
 
   footer: {
-    marginHorizontal: 20,
-    marginTop: 24,
-    marginBottom: 40,
+    paddingHorizontal: 24,
+    marginTop: "auto",
+    paddingBottom: 40,
   },
   footerText: {
-    color: "rgba(255,255,255,0.2)",
-    fontSize: 12,
+    color: "#444",
+    fontSize: 11,
     textAlign: "center",
-    lineHeight: 18,
+    lineHeight: 16,
   },
 });

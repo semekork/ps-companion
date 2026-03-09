@@ -15,7 +15,7 @@ import { ProgressRing } from "@/components/progress-ring";
 import { PsnAvatar } from "@/components/psn-avatar";
 import { Skeleton } from "@/components/skeleton-placeholder";
 import { useUser } from "@/context/user-context";
-import type { LibraryGame } from "@/types/psn";
+import type { FriendPresence, LibraryGame } from "@/types/psn";
 import {
   useContinuePlaying,
   useFriendsOnline,
@@ -217,7 +217,7 @@ export default function DashboardScreen() {
               gap: 10,
             }}
           >
-            {rest.map((game) => (
+            {rest.map((game: LibraryGame) => (
               <GameShelfCard
                 key={game.npCommunicationId}
                 game={game}
@@ -256,32 +256,34 @@ export default function DashboardScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ gap: 20 }}
               >
-                {friendsOnline.allFriends.slice(0, 5).map((f) => (
-                  <View key={f.accountId} className="items-center gap-y-2">
-                    <PsnAvatar
-                      uri={f.avatarUrl}
-                      onlineId={f.onlineId}
-                      size={52}
-                      isOnline={f.isOnline}
-                    />
-                    <Text
-                      className="text-gray-400 text-xs"
-                      numberOfLines={1}
-                      style={{ maxWidth: 62 }}
-                    >
-                      {f.onlineId}
-                    </Text>
-                    <Text
-                      className="text-gray-600 text-[9px]"
-                      numberOfLines={1}
-                      style={{ maxWidth: 62 }}
-                    >
-                      {f.isOnline
-                        ? (f.currentlyPlayingTitle ?? "Online")
-                        : formatRelativeDate(f.lastOnlineAt)}
-                    </Text>
-                  </View>
-                ))}
+                {friendsOnline.allFriends
+                  .slice(0, 5)
+                  .map((f: FriendPresence) => (
+                    <View key={f.accountId} className="items-center gap-y-2">
+                      <PsnAvatar
+                        uri={f.avatarUrl}
+                        onlineId={f.onlineId}
+                        size={52}
+                        isOnline={f.isOnline}
+                      />
+                      <Text
+                        className="text-gray-400 text-xs"
+                        numberOfLines={1}
+                        style={{ maxWidth: 62 }}
+                      >
+                        {f.onlineId}
+                      </Text>
+                      <Text
+                        className="text-gray-600 text-[9px]"
+                        numberOfLines={1}
+                        style={{ maxWidth: 62 }}
+                      >
+                        {f.isOnline
+                          ? (f.currentlyPlayingTitle ?? "Online")
+                          : formatRelativeDate(f.lastOnlineAt)}
+                      </Text>
+                    </View>
+                  ))}
               </ScrollView>
             </View>
           )}

@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "psapp",
+    "scheme": ["psapp", "com.scee.psxandroid.scecompcall"],
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
