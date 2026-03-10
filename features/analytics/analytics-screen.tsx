@@ -567,8 +567,7 @@ function StatBox({
 export default function AnalyticsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { analytics, isLoading, isLibraryLoaded, isPlayHistoryLoaded } =
-    useAnalytics();
+  const { analytics, isLibraryLoaded, isPlayHistoryLoaded } = useAnalytics();
 
   return (
     <View className="flex-1 bg-black">
