@@ -28,6 +28,14 @@ export default function TabLayout() {
         <Label>Library</Label>
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="search" role="search">
+        <Icon
+          sf="magnifyingglass"
+          androidSrc={<VectorIcon family={MaterialIcons} name="search" />}
+        />
+        <Label>Search</Label>
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="trophies">
         <Icon
           sf="trophy.fill"
@@ -42,14 +50,6 @@ export default function TabLayout() {
           androidSrc={<VectorIcon family={MaterialIcons} name="group" />}
         />
         <Label>Friends</Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="news">
-        <Icon
-          sf="newspaper.fill"
-          androidSrc={<VectorIcon family={MaterialIcons} name="article" />}
-        />
-        <Label>News</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
