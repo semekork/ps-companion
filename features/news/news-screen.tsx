@@ -3,8 +3,8 @@ import * as WebBrowser from "expo-web-browser";
 import React, { useCallback } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -191,7 +191,15 @@ const NewsCard = React.memo(function NewsCard({
 // Screen
 // ---------------------------------------------------------------------------
 
-export default function NewsScreen() {
+export function NewsList({
+  showHeader = true,
+  showHeaderSpacing = true,
+  limit = 0,
+}: {
+  showHeader?: boolean;
+  showHeaderSpacing?: boolean;
+  limit?: number;
+}) {
   const insets = useSafeAreaInsets();
 
   const {
@@ -205,17 +213,12 @@ export default function NewsScreen() {
     refetch,
   } = useNews();
 
-  const renderPost = useCallback(
-    ({ item, index }: { item: BlogPost; index: number }) => (
-      <NewsCard post={item} index={index} animate={isLoading} />
-    ),
-    [isLoading],
-  );
+  const displayedPosts = limit > 0 ? posts.slice(0, limit) : posts;
 
   const ListHeader = (
     <View
       className="flex-row items-center justify-between px-5 mb-4"
-      style={{ paddingTop: insets.top + 12 }}
+      style={showHeaderSpacing ? { paddingTop: insets.top + 12 } : undefined}
     >
       <Text className="text-white text-2xl font-bold tracking-tight">
         Official News
@@ -245,8 +248,8 @@ export default function NewsScreen() {
   if (isError) {
     return (
       <View
-        className="flex-1 items-center justify-center bg-black"
-        style={{ paddingTop: insets.top }}
+        className="flex-1 items-center justify-center py-20"
+        style={showHeaderSpacing ? { paddingTop: insets.top } : undefined}
       >
         <Text className="text-white text-base font-semibold mb-3">
           Could not load news
@@ -263,8 +266,8 @@ export default function NewsScreen() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 bg-black">
-        {ListHeader}
+      <View className="flex-1">
+        {showHeader && ListHeader}
         {Array.from({ length: 6 }).map((_, i) => (
           <SkeletonCard key={i} />
         ))}
@@ -273,26 +276,33 @@ export default function NewsScreen() {
   }
 
   return (
-    <FlatList<BlogPost>
-      className="flex-1 bg-black"
-      contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
-      data={posts}
-      keyExtractor={(p) => p.id}
-      renderItem={renderPost}
-      ListHeaderComponent={ListHeader}
-      ListFooterComponent={ListFooter}
-      ListEmptyComponent={
+    <View className="flex-1">
+      {showHeader && ListHeader}
+      {displayedPosts.length === 0 ? (
         <View className="flex-1 items-center justify-center pt-20">
           <Text className="text-gray-500 text-base font-medium">
             No posts found
           </Text>
         </View>
-      }
-      refreshing={isFetching && !isLoading && !isFetchingNextPage}
-      onRefresh={refetch}
-      initialNumToRender={10}
-      maxToRenderPerBatch={10}
-      windowSize={5}
-    />
+      ) : (
+        displayedPosts.map((post, index) => (
+          <NewsCard
+            key={post.id}
+            post={post}
+            index={index}
+            animate={isLoading}
+          />
+        ))
+      )}
+      {!limit && ListFooter}
+    </View>
+  );
+}
+
+export default function NewsScreen() {
+  return (
+    <ScrollView className="flex-1 bg-black">
+      <NewsList />
+    </ScrollView>
   );
 }
