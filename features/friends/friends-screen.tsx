@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   SectionList,
   StyleSheet,
@@ -25,6 +26,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { PsnAvatar } from "@/components/psn-avatar";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import type { FriendPresence } from "@/types/psn";
+import FriendActivity from "./FriendActivity";
 import { useFriends } from "./use-friends";
 
 const PS_DARK = "#00439C";
@@ -129,17 +131,21 @@ function SectionLabel({
 function FriendRow({
   friend,
   onPress,
+  onLongPress,
   text,
   subtle,
 }: {
   friend: FriendPresence;
   onPress: () => void;
+  onLongPress?: () => void;
   text: string;
   subtle: string;
 }) {
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={250}
       style={({ pressed }) => pressed && { opacity: 0.7 }}
     >
       <View style={styles.row}>
@@ -248,6 +254,31 @@ export default function FriendsScreen() {
     [router],
   );
 
+  const handleLongPress = useCallback((friend: FriendPresence) => {
+    if (friend.isOnline && friend.currentlyPlayingTitle) {
+      try {
+        FriendActivity.start({
+          friendOnlineId: friend.onlineId,
+          gameTitle: friend.currentlyPlayingTitle,
+        });
+        Alert.alert(
+          "Live Activity Started",
+          `Now tracking ${friend.onlineId} on your Lock Screen & Dynamic Island.`,
+        );
+      } catch {
+        Alert.alert(
+          "Error",
+          "Could not start Live Activity. Make sure you are on a compatible device.",
+        );
+      }
+    } else {
+      Alert.alert(
+        "Unavailable",
+        `${friend.onlineId} is not currently playing a game to track.`,
+      );
+    }
+  }, []);
+
   const ListHeader = useMemo(
     () => (
       <Animated.View entering={FadeIn.duration(300)}>
@@ -296,9 +327,7 @@ export default function FriendsScreen() {
         <View style={[styles.divider, { backgroundColor: inputBg }]} />
       </Animated.View>
     ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      bg,
       text,
       tint,
       subtle,
@@ -309,6 +338,7 @@ export default function FriendsScreen() {
       totalCount,
       onlineCount,
       searchQuery,
+      setSearchQuery,
     ],
   );
 
@@ -401,6 +431,7 @@ export default function FriendsScreen() {
           <FriendRow
             friend={item}
             onPress={() => handleOpenFriend(item)}
+            onLongPress={() => handleLongPress(item)}
             text={text}
             subtle={subtle}
           />
