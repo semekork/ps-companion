@@ -5,14 +5,11 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": [
-      "psapp",
-      "com.scee.psxandroid.scecompcall"
-    ],
+    "scheme": "psapp",
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.ps-app",
+      "bundleIdentifier": "com.mitech.pscompanion",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -55,7 +52,16 @@
           }
         }
       ],
-      "expo-widgets"
+      [
+        "expo-widgets",
+        {
+          "bundleIdentifier": "com.mitech.pscompanion.widgets"
+        }
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-sharing",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -67,6 +73,6 @@
         "projectId": "d8662a92-f926-4575-b261-3571ca0a0cee"
       }
     },
-    "owner": "iamsirmike"
+    "owner": "semekork"
   }
 }
