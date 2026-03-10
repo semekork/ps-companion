@@ -41,7 +41,7 @@ function FloatingColumn({
     };
     const timer = setTimeout(startAnimation, delay);
     return () => clearTimeout(timer);
-  }, []);
+  }, [delay, duration, offset, translateY]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
