@@ -128,6 +128,8 @@ export const Button = forwardRef<View, ButtonProps>(
   },
 );
 
+Button.displayName = "Button";
+
 const styles = StyleSheet.create({
   base: {
     borderRadius: 8,
