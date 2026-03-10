@@ -12,7 +12,6 @@ import { Redirect, Stack, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { StyleSheet } from "react-native";
-import "react-native-reanimated";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -83,7 +82,7 @@ function RootNavigator() {
     if (!isLoading) {
       splashOpacity.value = withTiming(0, { duration: 500 });
     }
-  }, [isLoading]);
+  }, [isLoading, splashOpacity]);
 
   const splashStyle = useAnimatedStyle(() => ({
     opacity: splashOpacity.value,
