@@ -16,8 +16,6 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 import type { SocialAccountResult } from "psn-api";
 import { useSearch } from "./use-search";
 
-const PS_DARK = "#00439C";
-
 function UserRow({
   user,
   onPress,
