@@ -1,1 +1,3 @@
-export { default } from "@/features/friends/friends-screen";
+import FriendsScreen from "@/features/friends/friends-screen";
+
+export default FriendsScreen;
