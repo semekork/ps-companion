@@ -1,11 +1,8 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import {
-  Icon,
-  Label,
-  NativeTabs,
-  VectorIcon,
-} from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 import React from "react";
+
+const { Icon, Label, VectorIcon } = NativeTabs.Trigger;
 
 export default function TabLayout() {
   return (
@@ -13,7 +10,7 @@ export default function TabLayout() {
       <NativeTabs.Trigger name="index">
         <Icon
           sf="house.fill"
-          androidSrc={<VectorIcon family={MaterialIcons} name="home" />}
+          src={<VectorIcon family={MaterialIcons} name="home" />}
         />
         <Label>Home</Label>
       </NativeTabs.Trigger>
@@ -21,9 +18,7 @@ export default function TabLayout() {
       <NativeTabs.Trigger name="library">
         <Icon
           sf="gamecontroller.fill"
-          androidSrc={
-            <VectorIcon family={MaterialIcons} name="sports-esports" />
-          }
+          src={<VectorIcon family={MaterialIcons} name="sports-esports" />}
         />
         <Label>Library</Label>
       </NativeTabs.Trigger>
@@ -31,7 +26,7 @@ export default function TabLayout() {
       <NativeTabs.Trigger name="search" role="search">
         <Icon
           sf="magnifyingglass"
-          androidSrc={<VectorIcon family={MaterialIcons} name="search" />}
+          src={<VectorIcon family={MaterialIcons} name="search" />}
         />
         <Label>Search</Label>
       </NativeTabs.Trigger>
@@ -39,7 +34,7 @@ export default function TabLayout() {
       <NativeTabs.Trigger name="trophies">
         <Icon
           sf="trophy.fill"
-          androidSrc={<VectorIcon family={MaterialIcons} name="emoji-events" />}
+          src={<VectorIcon family={MaterialIcons} name="emoji-events" />}
         />
         <Label>Trophies</Label>
       </NativeTabs.Trigger>
@@ -47,7 +42,7 @@ export default function TabLayout() {
       <NativeTabs.Trigger name="friends">
         <Icon
           sf="person.2.fill"
-          androidSrc={<VectorIcon family={MaterialIcons} name="group" />}
+          src={<VectorIcon family={MaterialIcons} name="group" />}
         />
         <Label>Friends</Label>
       </NativeTabs.Trigger>
