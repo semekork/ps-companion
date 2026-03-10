@@ -1,5 +1,5 @@
 import type { PsnProfile } from "@/types/psn";
-import { getProfileFromAccountId } from "psn-api";
+import { getProfileFromAccountId, makeUniversalSearch } from "psn-api";
 import { buildPsnAuth } from "./psn-auth";
 
 export async function fetchProfile(
@@ -22,4 +22,14 @@ export async function fetchProfile(
     isPsPlus: p.isPlus ?? false,
     primaryOnlineStatus: "offline" as const,
   };
+}
+
+export async function searchUsers(accessToken: string, query: string) {
+  const auth = buildPsnAuth(accessToken);
+  const response = await makeUniversalSearch(auth, query, "SocialAllAccounts");
+
+  if (response.domainResponses.length > 0) {
+    return response.domainResponses[0].results;
+  }
+  return [];
 }
