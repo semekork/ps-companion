@@ -51,7 +51,7 @@ export default function AuthScreen() {
     if (isAuthenticated && isUnlocked) {
       router.replace("/(tabs)");
     }
-  }, [isAuthenticated, isUnlocked]);
+  }, [isAuthenticated, isUnlocked, router]);
 
   async function handleAutoSignIn() {
     if (busy) return;
