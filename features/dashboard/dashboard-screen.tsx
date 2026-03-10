@@ -1,6 +1,7 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
   Pressable,
   RefreshControl,
@@ -16,6 +17,7 @@ import { PsnAvatar } from "@/components/psn-avatar";
 import { Skeleton } from "@/components/skeleton-placeholder";
 import { useUser } from "@/context/user-context";
 import type { FriendPresence, LibraryGame } from "@/types/psn";
+import { NewsList } from "../news/news-screen";
 import {
   useContinuePlaying,
   useFriendsOnline,
@@ -26,6 +28,7 @@ import {
 const PS_BLUE = "#0070D1";
 
 export default function DashboardScreen() {
+  const [activeTab, setActiveTab] = useState<"games" | "news">("games");
   const router = useRouter();
   const { profile, trophySummary } = useUser();
 
@@ -59,7 +62,7 @@ export default function DashboardScreen() {
   return (
     <View className="flex-1 bg-black">
       {/* ── Fixed Hero Background  ─────────────── */}
-      {hero ? (
+      {activeTab === "games" && hero ? (
         <View
           style={{
             position: "absolute",
@@ -73,6 +76,25 @@ export default function DashboardScreen() {
             source={{ uri: hero.imageUrl }}
             style={{ width: "100%", height: "100%" }}
             contentFit="cover"
+          />
+          <LinearGradient
+            colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.8)", "#000000"]}
+            locations={[0, 0.6, 1]}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </View>
+      ) : activeTab === "news" ? (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 500,
+          }}
+        >
+          <View
+            style={{ width: "100%", height: "100%", backgroundColor: "#111" }}
           />
           <LinearGradient
             colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.8)", "#000000"]}
@@ -111,8 +133,20 @@ export default function DashboardScreen() {
           style={{ paddingTop: insets.top + 12 }}
         >
           <View className="flex-row items-baseline gap-x-6">
-            <Text className="text-white text-xl font-bold">Games</Text>
-            <Text className="text-gray-400 text-lg font-semibold">Media</Text>
+            <Pressable onPress={() => setActiveTab("games")}>
+              <Text
+                className={`text-xl font-bold ${activeTab === "games" ? "text-white" : "text-gray-500"}`}
+              >
+                Games
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => setActiveTab("news")}>
+              <Text
+                className={`text-xl font-bold ${activeTab === "news" ? "text-white" : "text-gray-500"}`}
+              >
+                News
+              </Text>
+            </Pressable>
           </View>
           <Pressable
             className="active:opacity-70"
@@ -128,240 +162,258 @@ export default function DashboardScreen() {
           </Pressable>
         </View>
 
-        {/* ── Game Shelf ────────────────────────────────────── */}
-        <View>
-          {continuePlaying.isLoading ? (
-            <View className="flex-row px-5 gap-x-3">
-              {[0, 1, 2, 3].map((i) => (
-                <Skeleton key={i} width={72} height={72} borderRadius={8} />
-              ))}
-            </View>
-          ) : continuePlaying.data && continuePlaying.data.length > 0 ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
-            >
-              {continuePlaying.data.map((game, i) => {
-                const isSelected = i === 0;
-                return (
-                  <Pressable
-                    key={game.npCommunicationId}
-                    onPress={() => handleOpenGame(game)}
-                    className="active:opacity-80"
-                  >
-                    <View
-                      className={`rounded-lg overflow-hidden ${
-                        isSelected
-                          ? "border-2 border-white"
-                          : "border border-white/10"
-                      }`}
-                      style={{ width: 72, height: 72 }}
-                    >
-                      <Image
-                        source={{ uri: game.imageUrl }}
-                        style={{ width: "100%", height: "100%" }}
-                        contentFit="cover"
-                      />
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          ) : (
-            <View className="px-5">
-              <EmptyState label="No recently played games." />
-            </View>
-          )}
-        </View>
-
-        {/* ── Hero Info & Action ────────────────────────────── */}
-        {hero && (
-          <View className="px-5 mt-8 mb-10">
-            <Text
-              className="text-white font-bold text-3xl leading-tight mb-1"
-              numberOfLines={2}
-            >
-              {hero.name}
-            </Text>
-            <Text className="text-gray-300 text-sm mb-6">
-              {hero.platform} • Last played{" "}
-              {formatRelativeDate(hero.lastTrophyEarnedAt)}
-            </Text>
-
-            <Pressable
-              className="flex-row items-center justify-center rounded-lg px-8 py-3 self-start active:opacity-80"
-              style={{ backgroundColor: "white" }}
-              onPress={() => handleOpenGame(hero)}
-            >
-              <Text className="text-black text-sm font-bold">Open Game</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {/* ── Trophies Activity ─────────────────────────────── */}
-        <View className="px-5 mt-6 pt-6 border-t border-white/10">
-          <SectionHeader title="Your Trophy Summary" />
-          {trophySummary ? (
-            <View className="bg-zinc-900 rounded-xl p-5 border border-white/5 mt-2">
-              <View className="flex-row items-center justify-between mb-5">
-                <View className="flex-row items-center gap-x-4">
-                  <ProgressRing
-                    progress={trophySummary.progress}
-                    size={48}
-                    color={PS_BLUE}
-                    strokeWidth={4}
-                  >
-                    <Text className="text-white font-bold text-sm">
-                      {trophySummary.trophyLevel}
-                    </Text>
-                  </ProgressRing>
-                  <View>
-                    <Text className="text-white font-semibold mb-0.5">
-                      Level {trophySummary.trophyLevel}
-                    </Text>
-                    <Text className="text-gray-400 text-xs">
-                      {trophySummary.progress}% to next level
-                    </Text>
-                  </View>
+        {activeTab === "games" ? (
+          <>
+            {/* ── Game Shelf ────────────────────────────────────── */}
+            <View>
+              {continuePlaying.isLoading ? (
+                <View className="flex-row px-5 gap-x-3">
+                  {[0, 1, 2, 3].map((i) => (
+                    <Skeleton key={i} width={72} height={72} borderRadius={8} />
+                  ))}
                 </View>
-                <TrophyPill
-                  color="#B468F0"
-                  label="PLT"
-                  count={trophySummary.earnedTrophies.platinum}
-                />
-              </View>
-
-              <View className="flex-row gap-x-3">
-                <View className="flex-1 bg-black/40 rounded-lg py-2 items-center">
-                  <Text className="text-gray-400 text-[10px] mb-1">Gold</Text>
-                  <Text className="text-[#E8B420] font-bold text-sm">
-                    {trophySummary.earnedTrophies.gold}
-                  </Text>
-                </View>
-                <View className="flex-1 bg-black/40 rounded-lg py-2 items-center">
-                  <Text className="text-gray-400 text-[10px] mb-1">Silver</Text>
-                  <Text className="text-[#9BA7AF] font-bold text-sm">
-                    {trophySummary.earnedTrophies.silver}
-                  </Text>
-                </View>
-                <View className="flex-1 bg-black/40 rounded-lg py-2 items-center">
-                  <Text className="text-gray-400 text-[10px] mb-1">Bronze</Text>
-                  <Text className="text-[#C47A3A] font-bold text-sm">
-                    {trophySummary.earnedTrophies.bronze}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          ) : (
-            <View className="mt-2">
-              <Skeleton width="100%" height={120} borderRadius={12} />
-            </View>
-          )}
-        </View>
-
-        {/* ── Friends ───────────────────────────────────────── */}
-        <View className="px-5 mt-8">
-          <SectionHeader
-            title="Friends"
-            action="View All"
-            onAction={() => router.push("/(tabs)/friends")}
-          />
-
-          {friendsOnline.isLoading ? (
-            <View className="flex-row gap-x-5 mt-2">
-              {[0, 1, 2, 3].map((i) => (
-                <View key={i} className="items-center gap-y-2">
-                  <Skeleton width={48} height={48} borderRadius={24} />
-                  <Skeleton width={44} height={8} borderRadius={4} />
-                </View>
-              ))}
-            </View>
-          ) : friendsOnline.allFriends.length === 0 ? (
-            <View className="mt-2">
-              <Text className="text-gray-500 text-sm">No friends online</Text>
-            </View>
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 20, paddingTop: 8 }}
-            >
-              {friendsOnline.allFriends.slice(0, 5).map((f: FriendPresence) => (
-                <View key={f.accountId} className="items-center gap-y-2">
-                  <PsnAvatar
-                    uri={f.avatarUrl}
-                    onlineId={f.onlineId}
-                    size={48}
-                    isOnline={f.isOnline}
-                  />
-                  <Text
-                    className="text-gray-300 text-xs"
-                    numberOfLines={1}
-                    style={{ maxWidth: 62, textAlign: "center" }}
-                  >
-                    {f.onlineId}
-                  </Text>
-                </View>
-              ))}
-            </ScrollView>
-          )}
-        </View>
-
-        {/* ── Latest PS News ────────────────────────────────── */}
-        <View className="px-5 mt-8 mb-4">
-          <SectionHeader
-            title="Official News"
-            action="See All"
-            onAction={() => router.push("/(tabs)/news")}
-          />
-
-          {latestNews.isLoading ? (
-            <View className="mt-2">
-              <Skeleton width="100%" height={220} borderRadius={12} />
-            </View>
-          ) : latestNews.data ? (
-            <Pressable
-              className="mt-2 bg-zinc-900 rounded-xl overflow-hidden border border-white/5 active:opacity-85"
-              onPress={() => router.push("/(tabs)/news")}
-            >
-              {latestNews.data.thumbnailUrl ? (
-                <>
-                  <Image
-                    source={{ uri: latestNews.data.thumbnailUrl }}
-                    style={{ width: "100%", height: 160 }}
-                    contentFit="cover"
-                  />
-                  <View className="p-4 bg-zinc-900 border-t border-white/5">
-                    <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-2">
-                      {latestNews.data.category} •{" "}
-                      {formatRelativeDate(latestNews.data.publishedAt)}
-                    </Text>
-                    <Text
-                      className="text-white font-semibold text-sm leading-snug"
-                      numberOfLines={2}
-                    >
-                      {latestNews.data.title}
-                    </Text>
-                  </View>
-                </>
+              ) : continuePlaying.data && continuePlaying.data.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+                >
+                  {continuePlaying.data.map((game, i) => {
+                    const isSelected = i === 0;
+                    return (
+                      <Pressable
+                        key={game.npCommunicationId}
+                        onPress={() => handleOpenGame(game)}
+                        className="active:opacity-80"
+                      >
+                        <View
+                          className={`rounded-lg overflow-hidden ${
+                            isSelected
+                              ? "border-2 border-white"
+                              : "border border-white/10"
+                          }`}
+                          style={{ width: 72, height: 72 }}
+                        >
+                          <Image
+                            source={{ uri: game.imageUrl }}
+                            style={{ width: "100%", height: "100%" }}
+                            contentFit="cover"
+                          />
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
               ) : (
-                <View className="p-5">
-                  <Text
-                    className="text-white font-semibold text-sm"
-                    numberOfLines={3}
-                  >
-                    {latestNews.data.title}
-                  </Text>
+                <View className="px-5">
+                  <EmptyState label="No recently played games." />
                 </View>
               )}
-            </Pressable>
-          ) : (
-            <View className="mt-2">
-              <EmptyState label="Could not load news." />
             </View>
-          )}
-        </View>
+
+            {/* ── Hero Info & Action ────────────────────────────── */}
+            {hero && (
+              <View className="px-5 mt-8 mb-10">
+                <Text
+                  className="text-white font-bold text-3xl leading-tight mb-1"
+                  numberOfLines={2}
+                >
+                  {hero.name}
+                </Text>
+                <Text className="text-gray-300 text-sm mb-6">
+                  {hero.platform} • Last played{" "}
+                  {formatRelativeDate(hero.lastTrophyEarnedAt)}
+                </Text>
+
+                <Pressable
+                  className="flex-row items-center justify-center rounded-lg px-8 py-3 self-start active:opacity-80"
+                  style={{ backgroundColor: "white" }}
+                  onPress={() => handleOpenGame(hero)}
+                >
+                  <Text className="text-black text-sm font-bold">
+                    Open Game
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+
+            {/* ── Trophies Activity ─────────────────────────────── */}
+            <View className="px-5 mt-6 pt-6 border-t border-white/10">
+              <SectionHeader title="Your Trophy Summary" />
+              {trophySummary ? (
+                <View className="bg-zinc-900 rounded-xl p-5 border border-white/5 mt-2">
+                  <View className="flex-row items-center justify-between mb-5">
+                    <View className="flex-row items-center gap-x-4">
+                      <ProgressRing
+                        progress={trophySummary.progress}
+                        size={48}
+                        color={PS_BLUE}
+                        strokeWidth={4}
+                      >
+                        <Text className="text-white font-bold text-sm">
+                          {trophySummary.trophyLevel}
+                        </Text>
+                      </ProgressRing>
+                      <View>
+                        <Text className="text-white font-semibold mb-0.5">
+                          Level {trophySummary.trophyLevel}
+                        </Text>
+                        <Text className="text-gray-400 text-xs">
+                          {trophySummary.progress}% to next level
+                        </Text>
+                      </View>
+                    </View>
+                    <TrophyPill
+                      color="#B468F0"
+                      label="PLT"
+                      count={trophySummary.earnedTrophies.platinum}
+                    />
+                  </View>
+
+                  <View className="flex-row gap-x-3">
+                    <View className="flex-1 bg-black/40 rounded-lg py-2 items-center">
+                      <Text className="text-gray-400 text-[10px] mb-1">
+                        Gold
+                      </Text>
+                      <Text className="text-[#E8B420] font-bold text-sm">
+                        {trophySummary.earnedTrophies.gold}
+                      </Text>
+                    </View>
+                    <View className="flex-1 bg-black/40 rounded-lg py-2 items-center">
+                      <Text className="text-gray-400 text-[10px] mb-1">
+                        Silver
+                      </Text>
+                      <Text className="text-[#9BA7AF] font-bold text-sm">
+                        {trophySummary.earnedTrophies.silver}
+                      </Text>
+                    </View>
+                    <View className="flex-1 bg-black/40 rounded-lg py-2 items-center">
+                      <Text className="text-gray-400 text-[10px] mb-1">
+                        Bronze
+                      </Text>
+                      <Text className="text-[#C47A3A] font-bold text-sm">
+                        {trophySummary.earnedTrophies.bronze}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <View className="mt-2">
+                  <Skeleton width="100%" height={120} borderRadius={12} />
+                </View>
+              )}
+            </View>
+
+            {/* ── Friends ───────────────────────────────────────── */}
+            <View className="px-5 mt-8">
+              <SectionHeader
+                title="Friends"
+                action="View All"
+                onAction={() => router.push("/(tabs)/friends")}
+              />
+
+              {friendsOnline.isLoading ? (
+                <View className="flex-row gap-x-5 mt-2">
+                  {[0, 1, 2, 3].map((i) => (
+                    <View key={i} className="items-center gap-y-2">
+                      <Skeleton width={48} height={48} borderRadius={24} />
+                      <Skeleton width={44} height={8} borderRadius={4} />
+                    </View>
+                  ))}
+                </View>
+              ) : friendsOnline.allFriends.length === 0 ? (
+                <View className="mt-2">
+                  <Text className="text-gray-500 text-sm">
+                    No friends online
+                  </Text>
+                </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 20, paddingTop: 8 }}
+                >
+                  {friendsOnline.allFriends
+                    .slice(0, 5)
+                    .map((f: FriendPresence) => (
+                      <View key={f.accountId} className="items-center gap-y-2">
+                        <PsnAvatar
+                          uri={f.avatarUrl}
+                          onlineId={f.onlineId}
+                          size={48}
+                          isOnline={f.isOnline}
+                        />
+                        <Text
+                          className="text-gray-300 text-xs"
+                          numberOfLines={1}
+                          style={{ maxWidth: 62, textAlign: "center" }}
+                        >
+                          {f.onlineId}
+                        </Text>
+                      </View>
+                    ))}
+                </ScrollView>
+              )}
+            </View>
+
+            {/* ── Latest PS News ────────────────────────────────── */}
+            <View className="px-5 mt-8 mb-4">
+              <SectionHeader
+                title="Official News"
+                action="See All"
+                onAction={() => router.push("/(tabs)/news")}
+              />
+
+              {latestNews.isLoading ? (
+                <View className="mt-2">
+                  <Skeleton width="100%" height={220} borderRadius={12} />
+                </View>
+              ) : latestNews.data ? (
+                <Pressable
+                  className="mt-2 bg-zinc-900 rounded-xl overflow-hidden border border-white/5 active:opacity-85"
+                  onPress={() => router.push("/(tabs)/news")}
+                >
+                  {latestNews.data.thumbnailUrl ? (
+                    <>
+                      <Image
+                        source={{ uri: latestNews.data.thumbnailUrl }}
+                        style={{ width: "100%", height: 160 }}
+                        contentFit="cover"
+                      />
+                      <View className="p-4 bg-zinc-900 border-t border-white/5">
+                        <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-2">
+                          {latestNews.data.category} •{" "}
+                          {formatRelativeDate(latestNews.data.publishedAt)}
+                        </Text>
+                        <Text
+                          className="text-white font-semibold text-sm leading-snug"
+                          numberOfLines={2}
+                        >
+                          {latestNews.data.title}
+                        </Text>
+                      </View>
+                    </>
+                  ) : (
+                    <View className="p-5">
+                      <Text
+                        className="text-white font-semibold text-sm"
+                        numberOfLines={3}
+                      >
+                        {latestNews.data.title}
+                      </Text>
+                    </View>
+                  )}
+                </Pressable>
+              ) : (
+                <View className="mt-2">
+                  <EmptyState label="Could not load news." />
+                </View>
+              )}
+            </View>
+          </>
+        ) : (
+          <NewsList showHeader={false} showHeaderSpacing={false} />
+        )}
       </ScrollView>
     </View>
   );
