@@ -21,7 +21,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { BlogPost } from "@/types/psn";
-import EventActivity from "./EventActivity";
+
 import { useNews } from "./use-news";
 
 // ---------------------------------------------------------------------------
@@ -137,26 +137,8 @@ const NewsCard = React.memo(function NewsCard({
   }, [post.url]);
 
   const handleLongPress = useCallback(() => {
-    try {
-      // For demonstration, we'll set the event date to 2 hours from now
-      const dummyDate = new Date(Date.now() + 1000 * 60 * 60 * 2).toISOString();
-
-      EventActivity.start({
-        eventTitle: post.title,
-        eventDate: dummyDate,
-        thumbnailUrl: post.thumbnailUrl,
-        category: post.category,
-      });
-
-      Alert.alert(
-        "Countdown Started",
-        `Now tracking "${post.title}" on your Lock Screen.`,
-        [{ text: "OK" }]
-      );
-    } catch {
-      Alert.alert("Error", "Could not start event tracker.");
-    }
-  }, [post.title]);
+    // Live Activity functionality removed for Expo Go compatibility
+  }, []);
 
   const delay = Math.min(index * 60, 600);
 

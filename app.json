@@ -9,13 +9,13 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mitech.pscompanion",
+      "bundleIdentifier": "com.semekor.k.pscompanion",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.mitech.pscompanion",
+      "package": "com.semekor.k.pscompanion",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -52,12 +52,7 @@
           }
         }
       ],
-      [
-        "expo-widgets",
-        {
-          "bundleIdentifier": "com.mitech.pscompanion.widgets"
-        }
-      ],
+
       "expo-font",
       "expo-image",
       "expo-sharing",

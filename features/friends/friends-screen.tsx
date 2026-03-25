@@ -26,7 +26,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { PsnAvatar } from "@/components/psn-avatar";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import type { FriendPresence } from "@/types/psn";
-import FriendActivity from "./FriendActivity";
+
 import { useFriends } from "./use-friends";
 
 const PS_DARK = "#00439C";
@@ -255,28 +255,7 @@ export default function FriendsScreen() {
   );
 
   const handleLongPress = useCallback((friend: FriendPresence) => {
-    if (friend.isOnline && friend.currentlyPlayingTitle) {
-      try {
-        FriendActivity.start({
-          friendOnlineId: friend.onlineId,
-          gameTitle: friend.currentlyPlayingTitle,
-        });
-        Alert.alert(
-          "Live Activity Started",
-          `Now tracking ${friend.onlineId} on your Lock Screen & Dynamic Island.`,
-        );
-      } catch {
-        Alert.alert(
-          "Error",
-          "Could not start Live Activity. Make sure you are on a compatible device.",
-        );
-      }
-    } else {
-      Alert.alert(
-        "Unavailable",
-        `${friend.onlineId} is not currently playing a game to track.`,
-      );
-    }
+    // Live Activity functionality removed for Expo Go compatibility
   }, []);
 
   const ListHeader = useMemo(

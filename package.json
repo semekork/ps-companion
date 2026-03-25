@@ -11,7 +11,6 @@
     "lint": "expo lint"
   },
   "dependencies": {
-    "@expo/ui": "55.0.1",
     "@expo/vector-icons": "^15.0.3",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
@@ -38,7 +37,6 @@
     "expo-symbols": "~55.0.5",
     "expo-system-ui": "~55.0.9",
     "expo-web-browser": "~55.0.9",
-    "expo-widgets": "^55.0.3",
     "fast-xml-parser": "^5.4.2",
     "nativewind": "^4.2.2",
     "psn-api": "^2.18.0",
