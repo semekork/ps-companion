@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
@@ -26,8 +26,11 @@ import { captureRef } from "react-native-view-shot";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { type BacklogStatus, useBacklog } from "@/hooks/use-backlog";
 import type { GameTrophy } from "@/types/psn";
+import { useFriendComparison } from "./use-friend-comparison";
 import { useGameDetail } from "./use-game-detail";
+import { useHowLongToBeat } from "./use-how-long-to-beat";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -143,10 +146,12 @@ function TrophyRow({
   trophy,
   textColor,
   subtleColor,
+  friendStatus,
 }: {
   trophy: GameTrophy;
   textColor: string;
   subtleColor: string;
+  friendStatus?: { earned: boolean; avatarUrl?: string };
 }) {
   const color = TROPHY_COLORS[trophy.type] ?? TROPHY_COLORS.bronze;
   const label = TROPHY_LABELS[trophy.type] ?? "B";
@@ -211,6 +216,31 @@ function TrophyRow({
 
       {/* Earned indicator */}
       {trophy.earned && <View style={styles.earnedDot} />}
+
+      {/* Friend comparison indicator */}
+      {friendStatus && (
+        <View style={styles.friendCompareBadge}>
+          {friendStatus.avatarUrl ? (
+            <Image
+              source={{ uri: friendStatus.avatarUrl }}
+              style={[
+                styles.friendAvatarSmall,
+                !friendStatus.earned && { opacity: 0.2, grayscale: 1 } as any,
+              ]}
+            />
+          ) : (
+            <View
+              style={[
+                styles.friendAvatarSmall,
+                { backgroundColor: "#333", alignItems: "center", justifyContent: "center" },
+              ]}
+            >
+              <Text style={{ fontSize: 8 }}>?</Text>
+            </View>
+          )}
+          {friendStatus.earned && <View style={styles.friendEarnedDot} />}
+        </View>
+      )}
     </View>
   );
 }
@@ -432,6 +462,103 @@ const shareCardStyles = StyleSheet.create({
 });
 
 // ---------------------------------------------------------------------------
+// HowLongToBeat Panel
+// ---------------------------------------------------------------------------
+
+function HLTBStats({ gameName, subtle }: { gameName: string; subtle: string }) {
+  const { data, isLoading } = useHowLongToBeat(gameName);
+
+  if (!isLoading && (!data || data.mainStory === 0)) return null;
+
+  return (
+    <View style={styles.hltbContainer}>
+      <Text style={[styles.hltbTitle, { color: subtle }]}>HOW LONG TO BEAT</Text>
+      <View style={styles.hltbRow}>
+        <View style={styles.hltbItem}>
+          <Text style={[styles.hltbLabel, { color: subtle }]}>Main</Text>
+          {isLoading ? (
+            <SkeletonText width={24} />
+          ) : (
+            <Text style={styles.hltbValue}>{data?.mainStory}h</Text>
+          )}
+        </View>
+        <View style={styles.hltbItem}>
+          <Text style={[styles.hltbLabel, { color: subtle }]}>+ Extras</Text>
+          {isLoading ? (
+            <SkeletonText width={28} />
+          ) : (
+            <Text style={styles.hltbValue}>{data?.mainExtra}h</Text>
+          )}
+        </View>
+        <View style={styles.hltbItem}>
+          <Text style={[styles.hltbLabel, { color: subtle }]}>Complete</Text>
+          {isLoading ? (
+            <SkeletonText width={32} />
+          ) : (
+            <Text style={styles.hltbValue}>{data?.completionist}h</Text>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function SkeletonText({ width }: { width: number }) {
+  const pulse = useSharedValue(0.3);
+  React.useEffect(() => {
+    pulse.value = withRepeat(
+      withSequence(withTiming(0.6, { duration: 800 }), withTiming(0.3, { duration: 800 })),
+      -1,
+      false,
+    );
+  }, [pulse]);
+  return (
+    <Animated.View
+      style={[{ width, height: 16, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 4, marginTop: 2 }, { opacity: pulse }]}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Backlog Status Picker
+// ---------------------------------------------------------------------------
+
+function BacklogStatusPicker({ titleId, tint }: { titleId: string; tint: string }) {
+  const { tags, setTag } = useBacklog();
+  const currentTag = tags[titleId] || "None";
+  const statuses: BacklogStatus[] = ["None", "Playing", "Backlog", "Completed", "Abandoned"];
+
+  return (
+    <View style={styles.backlogContainer}>
+      <Text style={styles.backlogTitle}>COLLECTION</Text>
+      <FlatList
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        data={statuses}
+        keyExtractor={(item) => item}
+        contentContainerStyle={{ gap: 8, paddingRight: 20 }}
+        renderItem={({ item }) => {
+          const isActive = currentTag === item;
+          return (
+            <Pressable
+              onPress={() => setTag(titleId, item)}
+              style={[
+                styles.backlogPill,
+                isActive ? { backgroundColor: tint, borderColor: tint } : undefined,
+              ]}
+            >
+              <Text style={[styles.backlogPillText, isActive ? { color: "#fff" } : undefined]}>
+                {item}
+              </Text>
+            </Pressable>
+          );
+        }}
+      />
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Hero strip
 // ---------------------------------------------------------------------------
 
@@ -449,6 +576,7 @@ function HeroHeader({
   subtle,
   bg,
   onBack,
+  comparisonProps,
 }: {
   name: string;
   imageUrl: string;
@@ -463,6 +591,7 @@ function HeroHeader({
   subtle: string;
   bg: string;
   onBack: () => void;
+  comparisonProps: ReturnType<typeof useFriendComparison>;
 }) {
   return (
     <View>
@@ -547,7 +676,73 @@ function HeroHeader({
             </Text>
           </View>
         </View>
+
+        <HLTBStats gameName={name} subtle={subtle} />
+        <BacklogStatusPicker titleId={titleId} tint={tint} />
+        <FriendComparisonPanel props={comparisonProps} subtle={subtle} tint={tint} />
       </Animated.View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Friend Comparison
+// ---------------------------------------------------------------------------
+
+function FriendComparisonPanel({
+  props,
+  subtle,
+  tint,
+}: {
+  props: ReturnType<typeof useFriendComparison>;
+  subtle: string;
+  tint: string;
+}) {
+  const { friendMetadata, selectedFriendId, setSelectedFriendId, isMetadataLoading } = props;
+
+  if (isMetadataLoading) return null;
+
+  return (
+    <View style={styles.friendCompareContainer}>
+      <Text style={[styles.backlogTitle, { color: subtle }]}>COMPARE WITH FRIENDS</Text>
+      <FlatList
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        data={friendMetadata}
+        keyExtractor={(item) => item.accountId}
+        contentContainerStyle={{ gap: 12, paddingRight: 20 }}
+        renderItem={({ item }) => {
+          const isSelected = selectedFriendId === item.accountId;
+          return (
+            <Pressable
+              onPress={() => setSelectedFriendId(isSelected ? null : item.accountId)}
+              style={styles.friendItem}
+            >
+              <View
+                style={[
+                  styles.friendAvatarContainer,
+                  isSelected && { borderColor: tint, borderWidth: 2 },
+                ]}
+              >
+                <Image source={{ uri: item.avatarUrl }} style={styles.friendAvatarLarge} />
+                {item.isOnline && <View style={styles.onlineDot} />}
+              </View>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.friendName,
+                  { color: isSelected ? tint : "rgba(255,255,255,0.6)" },
+                ]}
+              >
+                {item.onlineId}
+              </Text>
+            </Pressable>
+          );
+        }}
+        ListEmptyComponent={
+          <Text style={{ color: subtle, fontSize: 12 }}>No friends found for comparison.</Text>
+        }
+      />
     </View>
   );
 }
@@ -587,6 +782,13 @@ export default function GameDetailScreen() {
     total,
   } = useGameDetail();
 
+  const comparison = useFriendComparison(
+    titleId,
+    (useLocalSearchParams().service as any) || "trophy2"
+  );
+  const { selectedFriendId, friendTrophyMap, friendMetadata } = comparison;
+  const selectedFriend = friendMetadata.find((f) => f.accountId === selectedFriendId);
+
   const handleShare = useCallback(async () => {
     if (sharing) return;
     setSharing(true);
@@ -614,10 +816,25 @@ export default function GameDetailScreen() {
   }, [sharing, earnedTotal, total, meta.name, meta.progress]);
 
   const renderTrophy = useCallback(
-    ({ item }: { item: GameTrophy }) => (
-      <TrophyRow trophy={item} textColor={text} subtleColor={subtle} />
-    ),
-    [text, subtle],
+    ({ item }: { item: GameTrophy }) => {
+      const friendStatus =
+        selectedFriendId && friendTrophyMap?.[item.trophyId]
+          ? {
+              earned: friendTrophyMap[item.trophyId].earned,
+              avatarUrl: selectedFriend?.avatarUrl,
+            }
+          : undefined;
+
+      return (
+        <TrophyRow
+          trophy={item}
+          textColor={text}
+          subtleColor={subtle}
+          friendStatus={friendStatus}
+        />
+      );
+    },
+    [text, subtle, selectedFriendId, friendTrophyMap, selectedFriend],
   );
 
   const ListHeader = useMemo(
@@ -636,6 +853,7 @@ export default function GameDetailScreen() {
         subtle={subtle}
         bg={bg}
         onBack={() => router.back()}
+        comparisonProps={comparison}
       />
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -833,6 +1051,129 @@ const styles = StyleSheet.create({
   statTotal: {
     fontSize: 13,
     marginLeft: 4,
+  },
+  // HLTB Panel
+  hltbContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+  },
+  hltbTitle: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  hltbRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 24,
+  },
+  hltbItem: {
+    gap: 2,
+  },
+  hltbLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  hltbValue: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  // Backlog Picker
+  backlogContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+  },
+  backlogTitle: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  backlogPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+  backlogPillText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  // Friend Comparison
+  friendCompareContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+  },
+  friendItem: {
+    alignItems: "center",
+    width: 60,
+    gap: 6,
+  },
+  friendAvatarContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    padding: 2,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  friendAvatarLarge: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 22,
+  },
+  friendName: {
+    fontSize: 10,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  onlineDot: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#34C759",
+    borderWidth: 2,
+    borderColor: "#000",
+  },
+  friendCompareBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    overflow: "visible",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  friendAvatarSmall: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  friendEarnedDot: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#34C759",
+    borderWidth: 1.5,
+    borderColor: "#000",
   },
   // Trophy rows
   trophyRow: {

@@ -18,6 +18,7 @@ import type {
   PlatformStats,
   TrophyInsights,
 } from "./analytics-types";
+import { type StoryStat, StoryReview } from "./StoryReview";
 import { useAnalytics } from "./use-analytics";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -568,6 +569,35 @@ export default function AnalyticsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { analytics, isLibraryLoaded, isPlayHistoryLoaded } = useAnalytics();
+  const [storyVisible, setStoryVisible] = React.useState(false);
+
+  const storyStats: StoryStat[] = [
+    {
+      title: "Your Monthly Recap",
+      value: "Elite",
+      subtitle: "You've reached new heights this month on PlayStation.",
+      bgColors: ["#0070D1", "#001A3A"],
+    },
+    {
+      title: "Most Played",
+      value: analytics.overview.mostPlayedGame?.name || "Active Session",
+      subtitle: `You spent ${formatHours(analytics.overview.mostPlayedGame?.playTimeMinutes ?? 0)}h exploring this world.`,
+      imageUrl: analytics.overview.mostPlayedGame?.imageUrl,
+      bgColors: ["#4A00E0", "#8E2DE2"],
+    },
+    {
+      title: "Trophy Collector",
+      value: String(analytics.trophyInsights.completionistCount),
+      subtitle: "Games reached 100% completion. You're a completionist!",
+      bgColors: ["#f8b500", "#fceabb"],
+    },
+    {
+      title: "Total Playtime",
+      value: `${formatHours(analytics.overview.totalPlayTimeMinutes)}h`,
+      subtitle: "Of pure gaming bliss across all your favorite consoles.",
+      bgColors: ["#1D976C", "#93F9B9"],
+    },
+  ];
 
   return (
     <View className="flex-1 bg-black">
@@ -600,8 +630,20 @@ export default function AnalyticsScreen() {
               Your PlayStation stats at a glance
             </Text>
           </View>
+          <Pressable
+            onPress={() => setStoryVisible(true)}
+            className="bg-white/10 px-4 py-2 rounded-full active:opacity-70"
+          >
+            <Text className="text-white font-bold text-xs">VIEW RECAP</Text>
+          </Pressable>
         </View>
       </LinearGradient>
+
+      <StoryReview 
+        visible={storyVisible} 
+        onClose={() => setStoryVisible(false)} 
+        stats={storyStats} 
+      />
 
       {/* ── Sections ───────────────────────────────────────────── */}
       <ScrollView

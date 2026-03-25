@@ -23,6 +23,7 @@ import { LockScreen } from "@/components/lock-screen";
 import { PsSplash } from "@/components/ps-splash";
 import { AuthProvider, useAuth } from "@/context/auth-context";
 import { UserProvider } from "@/context/user-context";
+import { BacklogProvider } from "@/hooks/use-backlog";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export const unstable_settings = {
@@ -64,7 +65,9 @@ export default function RootLayout() {
     >
       <AuthProvider>
         <UserProvider>
-          <RootNavigator />
+          <BacklogProvider>
+            <RootNavigator />
+          </BacklogProvider>
         </UserProvider>
       </AuthProvider>
     </PersistQueryClientProvider>

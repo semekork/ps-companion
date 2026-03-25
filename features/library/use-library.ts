@@ -10,6 +10,7 @@ import {
 import { useAuth } from "@/context/auth-context";
 import { fetchUserLibrary } from "@/services/psn-games";
 import type { LibraryGame, Platform } from "@/types/psn";
+import { type BacklogStatus, useBacklog } from "@/hooks/use-backlog";
 
 export type SortOption = "recent" | "name" | "progress";
 
@@ -20,6 +21,8 @@ export function useLibrary() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [platformFilter, setPlatformFilter] = useState<Platform | "all">("all");
+  const [tagFilter, setTagFilter] = useState<BacklogStatus | "all">("all");
+  const { tags } = useBacklog();
 
   // Debounce search input — only filter after the user pauses typing
   useEffect(() => {
@@ -45,6 +48,10 @@ export function useLibrary() {
 
     if (platformFilter !== "all") {
       list = list.filter((g) => g.platform === platformFilter);
+    }
+
+    if (tagFilter !== "all") {
+      list = list.filter((g) => (tags[g.npCommunicationId] || "None") === tagFilter);
     }
 
     if (debouncedSearch.trim()) {
@@ -73,7 +80,7 @@ export function useLibrary() {
     }
 
     return list;
-  }, [query.data, debouncedSearch, sortBy, platformFilter]);
+  }, [query.data, debouncedSearch, sortBy, platformFilter, tagFilter, tags]);
 
   const togglePlatform = useCallback((p: Platform | "all") => {
     startTransition(() => {
@@ -96,5 +103,8 @@ export function useLibrary() {
     setSortBy: handleSetSortBy,
     platformFilter,
     togglePlatform,
+    tagFilter,
+    setTagFilter,
+    tags,
   };
 }

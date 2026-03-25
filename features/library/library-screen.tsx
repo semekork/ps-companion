@@ -29,6 +29,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { type BacklogStatus } from "@/hooks/use-backlog";
 import type { LibraryGame, Platform as PsnPlatform } from "@/types/psn";
 import { type SortOption, useLibrary } from "./use-library";
 
@@ -183,6 +184,8 @@ function FilterSheet({
   text,
   bg,
   inputBg,
+  tagFilter,
+  setTagFilter,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -191,6 +194,8 @@ function FilterSheet({
   togglePlatform: (p: PsnPlatform | "all") => void;
   sortBy: SortOption;
   setSortBy: (s: SortOption) => void;
+  tagFilter: BacklogStatus | "all";
+  setTagFilter: (t: BacklogStatus | "all") => void;
   tint: string;
   subtle: string;
   text: string;
@@ -300,6 +305,22 @@ function FilterSheet({
             </View>
           </>
         )}
+
+        {/* Tags section */}
+        <View style={[styles.sheetDivider, { backgroundColor: inputBg }]} />
+        <Text style={[styles.sheetSection, { color: subtle }]}>COLLECTION</Text>
+        <View style={styles.sheetChipRow}>
+          {(["all", "None", "Playing", "Backlog", "Completed", "Abandoned"] as (BacklogStatus | "all")[]).map((t) => (
+            <FilterChip
+              key={t}
+              label={t === "all" ? "All Tags" : t}
+              active={tagFilter === t}
+              onPress={() => setTagFilter(t)}
+              tint={tint}
+              subtle={subtle}
+            />
+          ))}
+        </View>
       </Animated.View>
     </Modal>
   );
@@ -434,12 +455,14 @@ const GameCard = React.memo(function GameCard({
   animate,
   onPress,
   subtle,
+  tagBadge,
 }: {
   game: LibraryGame;
   index: number;
   animate: boolean;
   onPress: () => void;
   subtle: string;
+  tagBadge: BacklogStatus;
 }) {
   const scale = useSharedValue(1);
   const cardStyle = useAnimatedStyle(() => ({
@@ -492,7 +515,14 @@ const GameCard = React.memo(function GameCard({
             <Text style={styles.cardTitle} numberOfLines={2}>
               {game.name}
             </Text>
-            <PlatformBadge label={game.platform} />
+            <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
+              <PlatformBadge label={game.platform} />
+              {tagBadge !== "None" && (
+                <View style={[styles.platformBadge, { backgroundColor: "rgba(255,255,255,0.15)" }]}>
+                  <Text style={[styles.platformBadgeText, { color: "#fff" }]}>{tagBadge}</Text>
+                </View>
+              )}
+            </View>
           </View>
 
           <View style={styles.cardBottom}>
@@ -569,6 +599,9 @@ export default function LibraryScreen() {
     setSortBy,
     platformFilter,
     togglePlatform,
+    tagFilter,
+    setTagFilter,
+    tags,
     refetch,
     isFetching,
   } = useLibrary();
@@ -614,12 +647,13 @@ export default function LibraryScreen() {
         animate={animateCards}
         onPress={() => handleOpenGame(item)}
         subtle={subtle}
+        tagBadge={tags[item.npCommunicationId] || "None"}
       />
     ),
-    [handleOpenGame, subtle, animateCards],
+    [handleOpenGame, subtle, animateCards, tags],
   );
 
-  const hasActiveFilters = platformFilter !== "all" || sortBy !== "recent";
+  const hasActiveFilters = platformFilter !== "all" || sortBy !== "recent" || tagFilter !== "all";
 
   const ListHeader = useMemo(
     () => (
@@ -779,6 +813,8 @@ export default function LibraryScreen() {
         togglePlatform={togglePlatform}
         sortBy={sortBy}
         setSortBy={setSortBy}
+        tagFilter={tagFilter}
+        setTagFilter={setTagFilter}
         tint={tint}
         subtle={subtle}
         text={text}

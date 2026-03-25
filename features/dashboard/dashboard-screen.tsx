@@ -356,6 +356,40 @@ export default function DashboardScreen() {
               )}
             </View>
 
+            {/* ── Activity Feed ─────────────────────────────────── */}
+            <View className="px-5 mt-8">
+                <SectionHeader title="Recent Activity" />
+                <View className="gap-y-4">
+                    <ActivityItem 
+                        onlineId="KratosFan99"
+                        avatarUrl="https://avatar-res.api.playstation.com/avatar/PPL/UP00012102001_A01.png"
+                        type="trophy"
+                        title="Trophy Earned"
+                        detail="Platinum Trophy in God of War Ragnarök"
+                        timestamp="2h ago"
+                        imageUrl="https://image.api.playstation.com/vulcan/ap/rnd/202207/1210/67Oq8O76C29U2D9b0e257B.png"
+                    />
+                    <ActivityItem 
+                        onlineId="AstroExplorer"
+                        avatarUrl="https://avatar-res.api.playstation.com/avatar/PPL/UP00012102001_A05.png"
+                        type="playing"
+                        title="Started Playing"
+                        detail="Astro Bot: Rescue Mission"
+                        timestamp="5h ago"
+                        imageUrl="https://image.api.playstation.com/vulcan/ap/rnd/202009/2419/ZxtH9QoXWf3A9e6G2L3T1H.png"
+                    />
+                    <ActivityItem 
+                        onlineId="NathanDrake_007"
+                        avatarUrl="https://avatar-res.api.playstation.com/avatar/PPL/UP00012102001_A03.png"
+                        type="trophy"
+                        title="Trophy Earned"
+                        detail="Charted! - Crushing in Uncharted 4"
+                        timestamp="1d ago"
+                        imageUrl="https://image.api.playstation.com/vulcan/ap/rnd/202109/2821/SrtH9QoXWf3A9e6G2L3T1H.png"
+                    />
+                </View>
+            </View>
+
             {/* ── Latest PS News ────────────────────────────────── */}
             <View className="px-5 mt-8 mb-4">
               <SectionHeader
@@ -485,4 +519,42 @@ function formatRelativeDate(iso: string): string {
   if (days < 30) return `${Math.floor(days / 7)}w ago`;
   if (days < 365) return `${Math.floor(days / 30)}mo ago`;
   return `${Math.floor(days / 365)}y ago`;
+}
+
+function ActivityItem({
+    onlineId,
+    avatarUrl,
+    type,
+    title,
+    detail,
+    timestamp,
+    imageUrl,
+}: {
+    onlineId: string;
+    avatarUrl: string;
+    type: "trophy" | "playing";
+    title: string;
+    detail: string;
+    timestamp: string;
+    imageUrl: string;
+}) {
+    return (
+        <View className="flex-row gap-x-3 bg-zinc-900/50 rounded-xl p-3 border border-white/5">
+            <PsnAvatar uri={avatarUrl} onlineId={onlineId} size={40} />
+            <View className="flex-1">
+                <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">
+                    {onlineId} • {timestamp}
+                </Text>
+                <Text className="text-white font-bold text-sm mt-0.5">{title}</Text>
+                <Text className="text-gray-300 text-xs mt-1" numberOfLines={1}>{detail}</Text>
+            </View>
+            {imageUrl && (
+                <Image 
+                    source={{ uri: imageUrl }} 
+                    style={{ width: 44, height: 44, borderRadius: 6 }} 
+                    contentFit="cover"
+                />
+            )}
+        </View>
+    );
 }

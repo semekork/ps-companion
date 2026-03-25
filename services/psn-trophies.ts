@@ -87,3 +87,34 @@ export async function fetchGameTrophies(
     } satisfies GameTrophy;
   });
 }
+
+/**
+ * Fetch only the earned status map for a friend (to avoid re-fetching title metadata).
+ */
+export async function fetchFriendTrophies(
+  accessToken: string,
+  friendAccountId: string,
+  npCommunicationId: string,
+  npServiceName: "trophy" | "trophy2",
+): Promise<Record<number, { earned: boolean; earnedAt?: string }>> {
+  const auth = buildPsnAuth(accessToken);
+  const serviceOpt =
+    npServiceName === "trophy" ? { npServiceName: "trophy" as const } : {};
+
+  const earnedRes = await getUserTrophiesEarnedForTitle(
+    auth,
+    friendAccountId,
+    npCommunicationId,
+    "all",
+    serviceOpt,
+  );
+
+  const earnedMap: Record<number, { earned: boolean; earnedAt?: string }> = {};
+  for (const t of earnedRes.trophies ?? []) {
+    earnedMap[t.trophyId] = {
+      earned: t.earned ?? false,
+      earnedAt: t.earnedDateTime,
+    };
+  }
+  return earnedMap;
+}

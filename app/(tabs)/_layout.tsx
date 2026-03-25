@@ -31,6 +31,14 @@ export default function TabLayout() {
         <Label>Search</Label>
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="deals">
+        <Icon
+          sf="tag.fill"
+          src={<VectorIcon family={MaterialIcons} name="local-offer" />}
+        />
+        <Label>Deals</Label>
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="trophies">
         <Icon
           sf="trophy.fill"
